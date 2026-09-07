@@ -149,8 +149,11 @@ A result that only ever confirms its authors is the one to distrust.
   statement names them beside fingerprints. This is our clearest remaining gap.
 - **No authentication or authorisation.** A recorded scope decision: the
   security model assumes placement inside an already-restricted enclave.
-- **Tamper-*evident*, not tamper-proof.** The SHA-256 evidence chain detects
-  edits; an attacker with write access could rewrite it consistently.
+- **Evidence integrity depends on a held key.** The SHA-256 chain plus a
+  per-bundle **HMAC-SHA256** defeats a whole-chain forgery — seven tests attack
+  it, including one that recomputes every hash forward as a competent attacker
+  would. What it cannot survive is key compromise, and there is no external
+  anchor or asymmetric signature.
 - Sharding is not bit-exact (8–21 cells per configuration disagree).
 
 ## Licence and attribution
