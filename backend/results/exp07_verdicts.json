@@ -1,0 +1,98 @@
+{
+  "packets": 511245,
+  "avg_packet_bytes": 700.0,
+  "line_rate_pps_1gbps": 178571.42857142858,
+  "single_pps": 35992.141731587515,
+  "scaling": [
+    {
+      "shards": 1,
+      "wall_s": 14.204350599989993,
+      "packets_per_s": 35992.141731587515,
+      "speedup": 1.0,
+      "efficiency": 1.0,
+      "cells": 408845,
+      "meets_line_rate": false
+    },
+    {
+      "shards": 2,
+      "wall_s": 9.449499099995592,
+      "packets_per_s": 54102.867738273926,
+      "speedup": 1.503185560385589,
+      "efficiency": 0.7515927801927945,
+      "cells": 408845,
+      "meets_line_rate": false
+    },
+    {
+      "shards": 4,
+      "wall_s": 6.571669500001008,
+      "packets_per_s": 77795.29996143622,
+      "speedup": 2.1614523676194937,
+      "efficiency": 0.5403630919048734,
+      "cells": 408846,
+      "meets_line_rate": false
+    },
+    {
+      "shards": 6,
+      "wall_s": 5.2800214999879245,
+      "packets_per_s": 96826.3102718747,
+      "speedup": 2.6902069622296954,
+      "efficiency": 0.44836782703828254,
+      "cells": 408846,
+      "meets_line_rate": false
+    },
+    {
+      "shards": 8,
+      "wall_s": 5.359252599999309,
+      "packets_per_s": 95394.83173457171,
+      "speedup": 2.6504349878921225,
+      "efficiency": 0.3313043734865153,
+      "cells": 408847,
+      "meets_line_rate": false
+    },
+    {
+      "shards": 12,
+      "wall_s": 4.692983400003868,
+      "packets_per_s": 108938.16500599141,
+      "speedup": 3.0267208275184365,
+      "efficiency": 0.25222673562653636,
+      "cells": 408848,
+      "meets_line_rate": false
+    }
+  ],
+  "correctness": {
+    "2": {
+      "n_single": 408845,
+      "n_sharded": 408845,
+      "shared": 408845,
+      "key_agreement": 1.0,
+      "value_mismatches": 10,
+      "worst_abs_diff": 22.91556260698424,
+      "worst_feature": "hw_src_iat_mean"
+    },
+    "4": {
+      "n_single": 408845,
+      "n_sharded": 408846,
+      "shared": 408845,
+      "key_agreement": 0.9999975540912716,
+      "value_mismatches": 8,
+      "worst_abs_diff": 15.926432831540296,
+      "worst_feature": "hw_src_iat_mean"
+    },
+    "8": {
+      "n_single": 408845,
+      "n_sharded": 408847,
+      "shared": 408845,
+      "key_agreement": 0.999995108194508,
+      "value_mismatches": 21,
+      "worst_abs_diff": 1974140.0,
+      "worst_feature": "hw_src_fwd_bytes"
+    }
+  },
+  "verdicts": {
+    "W1": false,
+    "W2": true,
+    "W3": false,
+    "W4": false,
+    "W5": false
+  }
+}

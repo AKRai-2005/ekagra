@@ -1,0 +1,52 @@
+[
+  {
+    "file": "fig01_visibility_ablation.png",
+    "title": "Visibility ablation (generated traffic)",
+    "claim": "The controlled instrument: four visibility profiles on traffic where we know the ground truth."
+  },
+  {
+    "file": "fig02_visibility_ladder.png",
+    "title": "The visibility ladder",
+    "claim": "Each rung removes one thing a diode-side sensor cannot see."
+  },
+  {
+    "file": "fig03_cicids_ablation.png",
+    "title": "First real-corpus run",
+    "claim": "On CIC-IDS2017, retraining under the deployment profile recovered only a third of the loss."
+  },
+  {
+    "file": "fig04_host_window_dominates.png",
+    "title": "What a one-way tap actually costs",
+    "claim": "The tap costs 0.29 binary-F1 with per-flow features, and essentially nothing once the sensor keeps host state."
+  },
+  {
+    "file": "fig05_streaming_equivalence.png",
+    "title": "Streaming sketches vs exact batch",
+    "claim": "14 of 16 features reproduce bitwise; the one disagreement never reaches the model."
+  },
+  {
+    "file": "fig06_lateness_budget.png",
+    "title": "The lateness budget",
+    "claim": "15s buys back 12% of flows. It does not buy accuracy - prediction V4 refuted."
+  },
+  {
+    "file": "fig07_sharded_throughput.png",
+    "title": "Sharding vs line rate",
+    "claim": "672 Mbps measured against a 1 Gbps target. Four predictions refuted."
+  },
+  {
+    "file": "fig08_conformal_calibration.png",
+    "title": "Why calibration must be per class",
+    "claim": "A marginal predictor reports 0.883 coverage while abstaining on 95-100% of six of seven classes."
+  },
+  {
+    "file": "fig09_detector_heads.png",
+    "title": "Detector heads, tested",
+    "claim": "Starving a head of features costs 40x what splitting into heads is worth."
+  },
+  {
+    "file": "fig10_low_rate_diffuse.png",
+    "title": "Low-rate diffuse attacks",
+    "claim": "Our own headline, attacked: the one-way tap result holds, host-window-alone does not."
+  }
+]

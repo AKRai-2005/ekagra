@@ -1,0 +1,106 @@
+{
+  "sensor": {
+    "packets_observed": 471631,
+    "flows": 392309,
+    "cells": 369897,
+    "packets_per_s": 34635,
+    "window_s": 60.0,
+    "lateness_s": 15.0,
+    "latency_s": 75.0,
+    "evicted_hosts": 0,
+    "dropped_late": 13
+  },
+  "calibration": {
+    "alpha": 0.1,
+    "threshold": 6.54458999633789e-05,
+    "n_calibration": 49058,
+    "empirical_coverage": 0.9079656596392088,
+    "abstention_rate": 0.09106715931319279,
+    "accuracy_on_answered": 0.995492587278814,
+    "expected_calibration_error": 0.0008409372268539836,
+    "mondrian": true,
+    "per_class_coverage": {
+      "0": 0.9288702928870293,
+      "1": 0.9072332144015569,
+      "2": 0.9093298291721419,
+      "3": 0.5,
+      "4": 0.9033816425120773,
+      "5": 1.0,
+      "6": 1.0
+    },
+    "per_class_abstention": {
+      "0": 0.024267782426778243,
+      "1": 0.0927556007918843,
+      "2": 0.001314060446780552,
+      "3": 0.0,
+      "4": 0.004830917874396135,
+      "5": 0.1278538812785388,
+      "6": 0.0
+    },
+    "worst_class_coverage": 0.5
+  },
+  "calibration_marginal": {
+    "alpha": 0.1,
+    "threshold": 6.54458999633789e-05,
+    "n_calibration": 49058,
+    "empirical_coverage": 0.8826124755487937,
+    "abstention_rate": 0.11738752445120626,
+    "accuracy_on_answered": 1.0,
+    "expected_calibration_error": 5.058276280178742e-05,
+    "mondrian": false,
+    "per_class_coverage": {
+      "0": 0.0401673640167364,
+      "1": 0.9072332144015569,
+      "2": 0.040735873850197106,
+      "3": 0.0,
+      "4": 0.024154589371980676,
+      "5": 0.04794520547945205,
+      "6": 0.0
+    },
+    "per_class_abstention": {
+      "0": 0.9598326359832636,
+      "1": 0.09276678559844308,
+      "2": 0.9592641261498029,
+      "3": 1.0,
+      "4": 0.9758454106280193,
+      "5": 0.952054794520548,
+      "6": 1.0
+    },
+    "worst_class_coverage": 0.0
+  },
+  "binary_f1": 0.9192511202563172,
+  "chain_head": "aa9e72e4b8756d12fe71b11c2596e00c9802d120c7f0186bf228fa75b5b2adcb",
+  "entries": 90794,
+  "chain_verified": true,
+  "abstention_by_class": {
+    "benign": 0.024267782426778243,
+    "ddos": 0.0927556007918843,
+    "beacon": 0.001314060446780552,
+    "dga": 0.0,
+    "encrypted": 0.004830917874396135,
+    "scan": 0.1278538812785388,
+    "exfil": 0.0
+  },
+  "per_class_support": {
+    "benign": 1195,
+    "ddos": 89407,
+    "scan": 438,
+    "beacon": 761,
+    "encrypted": 207,
+    "dga": 2,
+    "exfil": 10
+  },
+  "worst_estimable_coverage": {
+    "mondrian": 0.9033816425120773,
+    "marginal": 0.024154589371980676
+  },
+  "excluded_thin_support": [
+    "dga",
+    "exfil"
+  ],
+  "verdicts": {
+    "X1": true,
+    "X2": true,
+    "X3": true
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "corpus": "CIC-IDS2017 corrected CICFlowMeter (Zenodo 22016274)",
+  "n_flows_used": 877801,
+  "benign_keep_rate": 0.3,
+  "n_full_features": 103,
+  "n_forward_features": 35,
+  "classes_absent_from_training": [
+    "Botnet",
+    "Botnet - Attempted",
+    "DDoS",
+    "Portscan"
+  ],
+  "n_test_flows_in_unseen_classes": 170873,
+  "n_learnable_classes": 23,
+  "binary_f1": {
+    "A_FULL": 0.987728597481947,
+    "B_DEPLOYED": 0.5221782068921772,
+    "C_MATCHED": 0.6833364387639423
+  },
+  "macro_f1": {
+    "A_FULL": 0.4665941732943764,
+    "B_DEPLOYED": 0.14990538710333373,
+    "C_MATCHED": 0.3110355380739486
+  },
+  "verdicts": {
+    "S1": true,
+    "S2": false,
+    "S3": true
+  },
+  "hardest_collapse": [
+    {
+      "label": "Infiltration",
+      "drop": 0.8
+    },
+    {
+      "label": "Infiltration - Portscan",
+      "drop": 0.5980112432767769
+    },
+    {
+      "label": "BENIGN",
+      "drop": 0.35221608676614546
+    },
+    {
+      "label": "Web Attack - XSS - Attempted",
+      "drop": 0.0
+    },
+    {
+      "label": "Web Attack - XSS",
+      "drop": 0.0
+    }
+  ]
+}

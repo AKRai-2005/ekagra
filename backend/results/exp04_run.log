@@ -1,0 +1,65 @@
+==============================================================================
+EKAGRA  ·  Experiment 04  ·  Does a fair one-way feature set close the gap?
+==============================================================================
+
+[1/4] Loading corpus ...
+      read 1,926,629 flows, kept 877,801 (all attacks + 30% of benign)
+
+[2/4] Computing host-window aggregates (W=60s) ...
+      16 features over 2,446 windows   (4.6s)
+      NOTE: the sensor emits at window close, so these carry 60s of latency.
+      The per-host baseline is strictly causal (earlier windows only).
+
+[3/4] Temporal split at window boundary 4721 (617,478 train / 260,323 test)
+      23 learnable classes; 4 test-only (170,873 flows, 65.6% of test)
+
+[4/4] Training three conditions ...
+      A  FULL    103 features
+      C  MATCHED  35 features
+      E  SENSOR   51 features (+16 host-window)
+      A  FULL      macro-F1 0.3999   binary-F1 0.9793
+      C  MATCHED   macro-F1 0.3110   binary-F1 0.6903
+      E  SENSOR    macro-F1 0.4660   binary-F1 0.9810
+      F  FULL+HW   macro-F1 0.5593   binary-F1 0.9811
+      G  HW ONLY   macro-F1 0.5995   binary-F1 0.9812
+
+      Top 10 features of condition E by gain:
+        hw_dst_flows_per_src                   2933.5  <- host-window
+        hw_src_fanout_per_flow                 2468.8  <- host-window
+        hw_dst_fwd_pkts                        2374.1  <- host-window
+        Fwd Packet Length Max                  1336.5
+        hw_src_n_dports                        1317.3  <- host-window
+        Fwd Segment Header Length Min          1077.6
+        Subflow Fwd Bytes                       918.3
+        Fwd PSH Flags                           749.4
+        hw_src_fwd_pkts                         746.6  <- host-window
+        Subflow Fwd Packets                     647.6
+
+==============================================================================
+PRE-REGISTERED PREDICTIONS
+==============================================================================
+  T1  HOLDS   E > C  (0.9810 vs 0.6903)
+  T2  HOLDS   E closes >= half the residual gap (needs 0.8348, got 0.9810)
+  T3  HOLDS   entropy/fan-out in top 10 (['hw_dst_flows_per_src', 'hw_src_fanout_per_flow', 'hw_dst_fwd_pkts', 'hw_src_n_dports', 'hw_src_fwd_pkts'])
+
+==============================================================================
+HEADLINE
+==============================================================================
+  A  full visibility, 103 feats      0.9793
+  C  one-way, CICFlowMeter feats     0.6903   (exp03's handicapped number)
+  E  one-way, purpose-built sensor   0.9810
+  F  full visibility + host-window   0.9811   [control]
+  G  host-window aggregates alone    0.9812   [control]
+
+  -> host-window features close 101% of the residual gap
+  -> E vs A: +0.0017   E vs F: -0.0001
+  -> F is level with E: once a sensor keeps windowed host state, the
+     reverse channel adds nothing measurable on this corpus.
+  -> G alone is close to E: the windowed host state is doing nearly all
+     of the work, and the per-flow forward features add little.
+
+  This is a LOWER bound. TTL diversity, DNS query-name entropy and TLS
+  fingerprint rarity need packet data this corpus does not carry.
+
+  wrote results/exp04_forward_features.csv and exp04_verdicts.json
+  total runtime 1123.9s

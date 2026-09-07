@@ -1,0 +1,122 @@
+{
+  "cells": 355868,
+  "test_cells": 103019,
+  "cooccurrence_fraction": 0.0008230382356794195,
+  "cooccurring_pairs": {
+    "beacon+scan": 139,
+    "encrypted+scan": 44,
+    "dga+scan": 43,
+    "beacon+encrypted": 40,
+    "beacon+dga": 10,
+    "exfil+scan": 8,
+    "dga+encrypted": 5,
+    "ddos+scan": 4,
+    "beacon+exfil": 3,
+    "ddos+dga": 2
+  },
+  "per_head": {
+    "volumetric": {
+      "threat_class": "ddos",
+      "support": 99216,
+      "ap_subset": 0.9858818526029278,
+      "ap_full": 0.9999734712715138,
+      "ap_multiclass": 0.9999734362877886,
+      "f1_subset": 0.3476501348965793,
+      "f1_full": 0.2790237810272155,
+      "f1_multiclass": 0.9988120765505925,
+      "threshold_subset": 0.999224,
+      "threshold_full": 0.999964,
+      "top_feature": "hw_dst_fwd_bytes",
+      "handicapped": false
+    },
+    "scan": {
+      "threat_class": "scan",
+      "support": 331,
+      "ap_subset": 0.027051617984710064,
+      "ap_full": 0.7561815916404291,
+      "ap_multiclass": 0.7494843889744178,
+      "f1_subset": 0.08749356664951106,
+      "f1_full": 0.7723132969034608,
+      "f1_multiclass": 0.7649253731343284,
+      "threshold_subset": 0.01557,
+      "threshold_full": 0.172035,
+      "top_feature": "hw_src_n_peers",
+      "handicapped": false
+    },
+    "beacon": {
+      "threat_class": "beacon",
+      "support": 1258,
+      "ap_subset": 0.42973402958697776,
+      "ap_full": 0.9076268789464059,
+      "ap_multiclass": 0.8836805852200679,
+      "f1_subset": 0.5264623955431755,
+      "f1_full": 0.6464489372731985,
+      "f1_multiclass": 0.7882599580712788,
+      "threshold_subset": 0.012077,
+      "threshold_full": 0.019657,
+      "top_feature": "hw_src_iat_mean",
+      "handicapped": false
+    },
+    "exfil": {
+      "threat_class": "exfil",
+      "support": 13,
+      "ap_subset": 0.295030213843203,
+      "ap_full": 0.7353534516297696,
+      "ap_multiclass": 0.6362100339289329,
+      "f1_subset": 0.0006710958996040534,
+      "f1_full": 0.047961630695443645,
+      "f1_multiclass": 0.6363636363636364,
+      "threshold_subset": 0.000255,
+      "threshold_full": 0.000256,
+      "top_feature": "hw_src_fwd_bytes",
+      "handicapped": false
+    },
+    "dga": {
+      "threat_class": "dga",
+      "support": 53,
+      "ap_subset": 0.0004136835474722546,
+      "ap_full": 0.9811992797727733,
+      "ap_multiclass": 0.9999999999999999,
+      "f1_subset": 0.0,
+      "f1_full": 0.9811320754716981,
+      "f1_multiclass": 0.9724770642201835,
+      "threshold_subset": 0.000921,
+      "threshold_full": 0.490109,
+      "top_feature": "hw_src_qname_bigram_rarity",
+      "handicapped": true
+    },
+    "encrypted": {
+      "threat_class": "encrypted",
+      "support": 365,
+      "ap_subset": 0.40574512870029034,
+      "ap_full": 0.9239713369082589,
+      "ap_multiclass": 0.9629119112234369,
+      "f1_subset": 0.4292527821939587,
+      "f1_full": 0.5935727788279773,
+      "f1_multiclass": 0.8958630527817404,
+      "threshold_subset": 0.292319,
+      "threshold_full": 0.989263,
+      "top_feature": "hw_src_tls_count",
+      "handicapped": true
+    }
+  },
+  "mean_ap": {
+    "subset_heads": 0.35730942104426355,
+    "full_feature_heads": 0.8840510016948584,
+    "multiclass": 0.872043392605774
+  },
+  "cost_of_starvation_ap": 0.5267415806505948,
+  "cost_of_decomposition_ap": 0.012007609089084381,
+  "multilabel_recovery": {
+    "true_labels": 156,
+    "heads": 137,
+    "multiclass": 77,
+    "cells": 78
+  },
+  "verdicts": {
+    "Y1": false,
+    "Y2": true,
+    "Y3": false,
+    "Y4": true
+  }
+}

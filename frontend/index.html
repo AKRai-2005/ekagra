@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EKAGRA · enclave console</title>
+<!--
+  Deliberately self-contained: no CDN, no web fonts, no external anything. The
+  enclave this runs in has no route to the internet, so a console that needs one
+  is arguing against its own premise.
+
+  Two data sources, chosen at boot:
+
+    LIVE     the read-only API is answering. The alert log, the server's own
+             verification and the SSE replay all come over HTTP.
+    OFFLINE  no API - the page was opened straight off the filesystem. Falls
+             back to the data.js snapshot the sensor writes.
+
+  Sensor run metadata (packets seen, throughput, calibration) comes from data.js
+  in BOTH modes: it describes the run that produced the log rather than the log
+  itself, and the API deliberately does not serve it.
+
+  In BOTH modes the chain is re-derived here, in the browser, from the bundle
+  fields. That is the whole point of shipping a verifier: one that trusts the
+  producer verifies nothing. In live mode the server is asked separately, so two
+  independent implementations can be shown agreeing.
+-->
+<style>
+  :root{
+    --bg:#0E1211; --panel:#151B1A; --panel2:#1B2322; --line:#2C3735;
+    --ink:#E6ECEA; --ink2:#9DACA8; --ink3:#6C7B77;
+    --accent:#45BFAF; --accent-dim:#1E4B46;
+    --bad:#E0705A; --warn:#D0A343; --ok:#5BBE7E;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.5 "Segoe UI",system-ui,sans-serif}
+  .mono{font-family:"Cascadia Mono",Consolas,"Courier New",monospace}
+  header{border-bottom:1px solid var(--line);padding:14px 20px;
+         display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  header h1{margin:0;font-size:17px;letter-spacing:.02em;font-weight:600}
+  header .sub{color:var(--ink3);font-size:12px}
+  .mode{font-size:9.5px;font-weight:700;letter-spacing:.11em;padding:2px 7px;
+        border-radius:3px;text-transform:uppercase;vertical-align:2px}
+  .mode.live{background:var(--accent-dim);color:var(--accent);
+             border:1px solid var(--accent)}
+  .mode.offline{background:#2a2a2a;color:var(--warn);border:1px dashed var(--warn)}
+  .mode.none{background:#2d1713;color:var(--bad);border:1px solid var(--bad)}
+  .stats{display:flex;gap:22px;margin-left:auto;flex-wrap:wrap}
+  .stat b{display:block;font-size:15px;font-weight:600}
+  .stat span{font-size:10.5px;color:var(--ink3);text-transform:uppercase;
+             letter-spacing:.09em}
+  main{display:grid;grid-template-columns:minmax(380px,1fr) minmax(430px,1.05fr);
+       gap:0;height:calc(100vh - 62px)}
+  @media(max-width:900px){main{grid-template-columns:1fr;height:auto}}
+  .col{overflow:auto;padding:16px 20px}
+  .col+.col{border-left:1px solid var(--line)}
+  h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;
+     color:var(--ink3);margin:0 0 10px;font-weight:600}
+  .bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+         padding:6px 12px;border-radius:4px;font:inherit;font-size:12.5px;
+         cursor:pointer}
+  button:hover:not(:disabled){border-color:var(--accent)}
+  button:disabled{opacity:.4;cursor:default}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  button.primary{background:var(--accent-dim);border-color:var(--accent);
+                 color:var(--accent)}
+  button.danger{border-color:var(--bad);color:var(--bad)}
+  select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+         padding:6px 8px;border-radius:4px;font:inherit;font-size:12.5px}
+  .alert{display:grid;grid-template-columns:64px 1fr auto;gap:10px;
+         padding:8px 10px;border:1px solid var(--line);border-radius:4px;
+         margin-bottom:6px;cursor:pointer;background:var(--panel)}
+  .alert:hover{border-color:var(--accent)}
+  .alert.sel{border-color:var(--accent);background:var(--panel2)}
+  .alert.broken{border-color:var(--bad)}
+  .alert.fresh{animation:slide .45s ease}
+  @keyframes slide{from{opacity:0;transform:translateY(-6px)}to{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.alert.fresh{animation:none}}
+  .tag{font-size:10px;text-transform:uppercase;letter-spacing:.07em;
+       padding:2px 6px;border-radius:3px;text-align:center;align-self:center;
+       font-weight:600}
+  .t-ddos{background:#4a1f18;color:#ffb4a2}
+  .t-scan{background:#173a4a;color:#9fd8ee}
+  .t-beacon{background:#3d3417;color:#ecd08a}
+  .t-dga{background:#3a1b45;color:#dcb0ee}
+  .t-encrypted{background:#1d3a2a;color:#9ce0b8}
+  .t-exfil{background:#4a2a17;color:#f0c199}
+  .t-benign{background:#232c2b;color:var(--ink3)}
+  .t-abstain{background:#2a2a2a;color:var(--warn);border:1px dashed var(--warn)}
+  /* A class the validator did not recognise. Rendering it neutrally beats
+     letting an unvetted value near a class attribute. */
+  .t-unknown{background:#2d1713;color:var(--bad);border:1px solid var(--bad)}
+  .who{font-size:12.5px}
+  .who small{color:var(--ink3);display:block;font-size:11px}
+  .conf{font-size:12px;color:var(--ink2);align-self:center;text-align:right}
+  /* Severity rail. Width encodes the band as well as colour, because colour
+     alone fails for colour-blind users - the same reason the threat tag
+     carries text rather than relying on its background. */
+  .sev{display:inline-flex;align-items:center;gap:5px;font-size:10px;
+       letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+  .sev i{display:inline-block;height:9px;border-radius:2px;flex:none}
+  .sev-info i{width:4px;background:#4a5568}
+  .sev-low i{width:8px;background:#5b8fbe}
+  .sev-medium i{width:12px;background:#d0a343}
+  .sev-high i{width:16px;background:#e08a4a}
+  .sev-critical i{width:20px;background:#e0705a}
+  .sev-critical{color:#e0705a}
+  .sev-high{color:#e08a4a}
+  .kv{display:grid;grid-template-columns:132px 1fr;gap:4px 12px;
+      font-size:12.5px;margin-bottom:14px}
+  .kv dt{color:var(--ink3)}
+  .kv dd{margin:0;overflow-wrap:anywhere}
+  .hash{color:var(--accent);font-size:11.5px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:5px;
+         padding:14px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  td{padding:3px 6px;border-bottom:1px solid var(--line)}
+  td:last-child{text-align:right;color:var(--ink2)}
+  .verdict{padding:10px 12px;border-radius:4px;margin-bottom:12px;font-size:13px}
+  .verdict.ok{background:#12291d;border:1px solid var(--ok);color:var(--ok)}
+  .verdict.bad{background:#2d1713;border:1px solid var(--bad);color:var(--bad)}
+  .verdict.busy{background:var(--panel2);border:1px solid var(--line);color:var(--ink2)}
+  .verdict ul{margin:8px 0 0;padding-left:18px}
+  .verdict li{margin:2px 0;font-family:"Cascadia Mono",Consolas,monospace;
+              font-size:11.5px}
+  .agree{display:flex;gap:16px;margin-top:9px;font-size:11.5px;flex-wrap:wrap;
+         border-top:1px solid rgba(255,255,255,.09);padding-top:8px}
+  .agree span{color:var(--ink2)}
+  .agree b{color:var(--ok)}
+  .agree b.no{color:var(--bad)}
+  .empty{color:var(--ink3);font-size:13px;padding:20px 0}
+  .note{color:var(--ink3);font-size:11.5px;margin-top:8px}
+  .head{border-bottom:1px solid var(--line);padding:7px 0;font-size:12px}
+  .head:last-child{border-bottom:none}
+  .head b{color:var(--accent)}
+  .head small{color:var(--ink3);display:block}
+  .head small.gap{color:var(--warn)}
+  .tabs{display:flex;gap:4px;margin-left:22px;align-self:center}
+  .tab{background:none;border:1px solid transparent;color:var(--ink3);
+       padding:5px 13px;border-radius:4px;font:inherit;font-size:12.5px;cursor:pointer}
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{background:var(--panel2);border-color:var(--line);
+       color:var(--accent);font-weight:600}
+  .findings{overflow:auto;padding:20px 24px;height:calc(100vh - 62px)}
+  .fig{max-width:1180px;margin:0 auto 30px}
+  .fig h3{margin:0 0 3px;font-size:14.5px;font-weight:600}
+  .fig p{margin:0 0 10px;color:var(--ink2);font-size:12.5px;max-width:900px}
+  .fig img{width:100%;height:auto;border:1px solid var(--line);border-radius:5px;
+           background:#fff}
+  .fig .n{color:var(--ink3);font-size:11px;letter-spacing:.09em;
+          text-transform:uppercase;font-weight:600}
+
+  .skip{position:absolute;left:-9999px;top:0;background:var(--accent);
+        color:var(--bg);padding:9px 14px;border-radius:0 0 5px 0;z-index:50;
+        font-weight:600;font-size:13px}
+  .skip:focus{left:0}
+  .alert:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ------------------------------------------------------------- narrow */
+  /* At 320px the six stat blocks wrapped to six rows and the header took 331px
+     of a 700px viewport - half the screen before a single alert. They become
+     one horizontally-scrollable strip instead, which keeps every number
+     reachable without spending the fold on them. */
+  @media(max-width:700px){
+    header{padding:11px 14px;gap:9px}
+    header h1{font-size:15.5px}
+    header .sub{font-size:11px}
+    .stats{margin-left:0;width:100%;gap:15px;overflow-x:auto;flex-wrap:nowrap;
+           padding-bottom:2px;scrollbar-width:none}
+    .stats::-webkit-scrollbar{display:none}
+    .stat{flex:none}
+    .stat b{font-size:13.5px}
+    .stat span{font-size:9.5px;letter-spacing:.06em}
+    .tabs{margin-left:0}
+    .col{padding:13px 14px}
+    .findings{padding:16px 14px;height:auto}
+    .alert{grid-template-columns:54px 1fr auto;gap:8px}
+    .kv{grid-template-columns:92px 1fr;gap:3px 10px}
+    .agree{gap:8px}
+    .fig{margin-bottom:22px}
+  }
+  /* Touch targets. 30px tab buttons are fine with a mouse and too small with a
+     thumb; WCAG asks for 44px, and only coarse pointers need to pay for it. */
+  @media (pointer:coarse){
+    .tab,button,select{min-height:44px}
+    .alert{padding:11px 10px}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#list">Skip to alerts</a>
+<header>
+  <div>
+    <h1>EKAGRA <span style="color:var(--ink3);font-weight:400">· enclave console</span>
+      <span class="mode" id="mode">…</span></h1>
+    <div class="sub" id="sub">connecting…</div>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tabOps" role="tab" aria-selected="true"
+            aria-controls="ops" tabindex="0">Alert stream</button>
+    <button class="tab" id="tabFind" role="tab" aria-selected="false"
+            aria-controls="findings" tabindex="-1">Findings</button>
+  </div>
+  <div class="stats" id="stats"></div>
+</header>
+
+<section class="findings" id="findings" role="tabpanel" aria-labelledby="tabFind" hidden>
+  <div id="figs"></div>
+</section>
+
+<main id="ops" role="tabpanel" aria-labelledby="tabOps">
+  <section class="col">
+    <h2>Alert stream</h2>
+    <div class="bar">
+      <select id="fClass"><option value="">all classes</option></select>
+      <select id="fDecision">
+        <option value="">all decisions</option>
+        <option value="ALERT">ALERT only</option>
+        <option value="ABSTAIN">ABSTAIN only</option>
+      </select>
+      <button id="replay" disabled title="stream this segment from the API as server-sent events">&#9654; Replay</button>
+      <span class="note" id="count" role="status" aria-live="polite"></span>
+    </div>
+    <div id="list" aria-label="Alert stream"></div>
+  </section>
+
+  <section class="col">
+    <h2>Evidence</h2>
+    <div class="bar">
+      <button class="primary" id="verify">Verify chain</button>
+      <button class="danger" id="tamper">Tamper with selected</button>
+      <button id="reset">Reset</button>
+    </div>
+    <div id="verdict" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="detail"><div class="empty">Select an alert to inspect its evidence bundle.</div></div>
+    <div class="panel" id="headsPanel" style="display:none">
+      <h2>Detector heads</h2>
+      <div id="heads"></div>
+    </div>
+  </section>
+</main>
+
+<script src="data.js"></script>
+<script>
+const SEP = "\u001f";   // US separator; must match SEP in evidence/bundle.py
+const FIELDS = ["seq","alert_id","ts","window","host","threat_class",
+                "score","confidence","decision","model_hash","feature_hash","prev_hash"];
+const FLOATS = new Set(["ts","score","confidence"]);
+const SEGMENT = 400;    // entries the browser holds and re-verifies
+
+const D = window.EKAGRA_DATA || null;   // sensor run metadata, either mode
+let MODE = "none";                      // "live" | "offline" | "none"
+let bundles = [], pristine = "[]", chain = null;
+let selected = null, broken = new Set(), es = null;
+let shown = 0;   // rows currently in the list element
+
+/* ---------------------------------------------------------------- crypto */
+/* Canonical form must match src/ekagra/evidence/bundle.py byte for byte: fixed
+   field order, US separator, floats at six decimals. Any drift here and the
+   browser reports tampering that never happened. */
+function canonical(b){
+  return FIELDS.map(f => FLOATS.has(f) ? Number(b[f]).toFixed(6) : String(b[f]))
+               .join(SEP);
+}
+async function sha256(text){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2,"0")).join("");
+}
+async function featureDigest(features){
+  const s = Object.keys(features).sort()
+    .map(k => k + "=" + Number(features[k]).toFixed(6)).join(SEP);
+  return sha256(s);
+}
+function esc(s){
+  return String(s).replace(/[<>&"']/g, c =>
+    ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* ------------------------------------------------------- input validation */
+/* Every bundle is normalised on arrival, before it can reach the DOM.
+ *
+ * This console's whole claim is that the evidence log has not been altered.
+ * The log is therefore exactly what an attacker with a foothold would tamper
+ * with - so rendering its contents unchecked would be arguing against our own
+ * premise. It was also concretely exploitable: `threat_class` was concatenated
+ * into a class attribute, and a value of `x" onmouseover="..."` escaped the
+ * attribute and executed.
+ *
+ * Validating here rather than at each render site means every path - paged
+ * fetch, SSE replay, detail merge, offline snapshot - is covered by
+ * construction, and a new render site cannot reintroduce the hole.
+ */
+const CLASS_TOKEN = /^[a-z0-9_-]{1,32}$/;      // what may reach a CSS class
+const HEX = /^[0-9a-f]{0,128}$/;               // digests, and nothing else
+const MAXSTR = 256;
+// Severity reaches a class attribute too, so it gets a closed set rather than a
+// pattern. There are exactly five bands; anything else is a bug or an edit.
+const SEVERITIES = ["info", "low", "medium", "high", "critical"];
+
+function s_(v, max = MAXSTR){                  // any displayable string
+  return typeof v === "string" ? v.slice(0, max) : (v == null ? "" : String(v).slice(0, max));
+}
+function n_(v){ const x = Number(v); return Number.isFinite(x) ? x : 0; }
+function hex_(v){ const t = s_(v, 128).toLowerCase(); return HEX.test(t) ? t : ""; }
+
+function normalise(b){
+  const cls = s_(b.threat_class, 32).toLowerCase();
+  return {
+    ...b,
+    seq: n_(b.seq),
+    window: n_(b.window),
+    ts: n_(b.ts),
+    score: n_(b.score),
+    confidence: n_(b.confidence),
+    host: s_(b.host, 64),
+    alert_id: s_(b.alert_id, 64),
+    threat_class: cls,
+    // Only a value matching the token pattern may be interpolated into a class
+    // attribute; anything else renders with neutral styling rather than
+    // becoming markup.
+    css_class: CLASS_TOKEN.test(cls) ? cls : "unknown",
+    decision: b.decision === "ABSTAIN" ? "ABSTAIN" : "ALERT",
+    severity: SEVERITIES.includes(s_(b.severity, 16)) ? s_(b.severity, 16) : "info",
+    severity_score: n_(b.severity_score),
+    prev_hash: hex_(b.prev_hash),
+    entry_hash: hex_(b.entry_hash),
+    model_hash: hex_(b.model_hash),
+    feature_hash: hex_(b.feature_hash),
+    hmac: hex_(b.hmac),
+    decision_path: Array.isArray(b.decision_path) ? b.decision_path.map(x => s_(x, 80)) : [],
+    observed: b.observed && typeof b.observed === "object" ? b.observed : {},
+    features: b.features && typeof b.features === "object" ? b.features : undefined,
+  };
+}
+
+/* ------------------------------------------------------------ data source */
+/* A hung server must not become a frozen console. Without a timeout, fetch waits
+   on the OS default - minutes - and the page just sits there with no way to tell
+   a slow enclave from a dead one. */
+const API_TIMEOUT_MS = 8000;
+
+async function api(path, timeout = API_TIMEOUT_MS){
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeout);
+  try{
+    const r = await fetch(path, {cache:"no-store", signal:ctl.signal});
+    if(!r.ok) throw new Error(path + " -> HTTP " + r.status);
+    return await r.json();
+  }catch(e){
+    if(e.name === "AbortError")
+      throw new Error(path + " -> no response in " + (timeout/1000) + "s");
+    throw e;
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+async function boot(){
+  try{
+    const health = await api("api/health");
+    if(health.status !== "ok") throw new Error(health.detail || health.status);
+    chain = await api("api/summary");
+    /* Hold the most RECENT segment: the tail is what an analyst looks at, and
+       it is where a replay ends. */
+    const offset = Math.max(0, chain.entries - SEGMENT);
+    bundles = (await api("api/alerts?limit=" + SEGMENT + "&offset=" + offset))
+                 .alerts.map(normalise);
+    MODE = "live";
+    loadHeads();
+  }catch(e){
+    if(D && D.bundles){
+      bundles = D.bundles.map(normalise);
+      chain = D.chain;
+      MODE = "offline";
+    }else{
+      MODE = "none";
+    }
+  }
+  pristine = JSON.stringify(bundles);
+  renderHeader();
+  if(MODE === "none") return;
+  const classes = [...new Set(bundles.map(b => b.threat_class))].sort();
+  document.getElementById("fClass").innerHTML =
+    `<option value="">all classes</option>` +
+    classes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  document.getElementById("replay").disabled = MODE !== "live";
+  renderList();
+}
+
+async function loadHeads(){
+  try{
+    const heads = await api("api/heads");
+    document.getElementById("headsPanel").style.display = "";
+    document.getElementById("heads").innerHTML = heads.map(h =>
+      `<div class="head"><b>${esc(h.name)}</b> &rarr; ${esc(h.threat_class)}
+        <small>${esc(h.rationale)}</small>
+        ${h.known_gap ? `<small class="gap">known gap: ${esc(h.known_gap)}</small>` : ""}
+      </div>`).join("");
+  }catch(e){ /* the head roster is a nicety, not a requirement */ }
+}
+
+/* ----------------------------------------------------------- verification */
+async function verifyChain(){
+  const problems = [];
+  broken = new Set();
+  /* The console holds the most recent slice, not the whole log, so the first
+     entry's prev_hash points at an entry we do not have. We verify the SEGMENT:
+     anchor on that value, then check every link after it. In a real deployment
+     the anchor is compared against a digest held independently of the sensor -
+     without that, a producer who rewrote the entire chain would still verify,
+     which is what the HMAC exists to stop. */
+  let prev = bundles.length ? bundles[0].prev_hash : "0".repeat(64);
+  for(const b of bundles){
+    if(b.prev_hash !== prev){
+      problems.push(`seq ${b.seq}: broken link (prev ${b.prev_hash.slice(0,12)}…, expected ${prev.slice(0,12)}…)`);
+      broken.add(b.seq);
+    }
+    const rec = await sha256(canonical(b));
+    if(rec !== b.entry_hash){
+      problems.push(`seq ${b.seq}: entry altered (stored ${b.entry_hash.slice(0,12)}…, recomputed ${rec.slice(0,12)}…)`);
+      broken.add(b.seq);
+    }
+    /* The list view omits feature vectors, so this check runs on whichever
+       bundles have been opened. It is a bonus: entry_hash already covers the
+       feature digest. */
+    if(b.features && Object.keys(b.features).length){
+      if(await featureDigest(b.features) !== b.feature_hash){
+        problems.push(`seq ${b.seq}: feature vector does not match its digest`);
+        broken.add(b.seq);
+      }
+    }
+    /* Carry the RECOMPUTED digest forward, matching the Python verifier: using
+       the stored one would let a single edit stop at its own entry instead of
+       invalidating the tail. */
+    prev = rec;
+  }
+  return problems;
+}
+
+async function doVerify(){
+  const v = document.getElementById("verdict");
+  v.innerHTML = `<div class="verdict busy">re-deriving ${bundles.length} entries in the browser…</div>`;
+  const problems = await verifyChain();
+  const clientOk = problems.length === 0;
+
+  /* Ask the server independently. Two implementations in two languages
+     agreeing is a stronger statement than either one alone. */
+  let agreeLine = "";
+  if(MODE === "live"){
+    try{
+      const sv = await api("api/verify");
+      /* A disagreement is not a fault - it is the mechanism working. The tamper
+         button edits this browser's copy, never the log on disk, so the server
+         still reads intact. Say so, or a tired reader takes "disagree" for a
+         broken tool. */
+      const why = (!clientOk && sv.verified)
+        ? `<div class="note">The edit exists only in this browser's copy; the log on disk is
+           untouched, so the server still reads intact. Two verifiers disagreeing is precisely
+           what catches evidence altered after it left the sensor.</div>`
+        : "";
+      agreeLine = `<div class="agree">
+        <span>browser, this segment: <b class="${clientOk?"":"no"}">${clientOk?"intact":"broken"}</b></span>
+        <span>server, whole log (${sv.entries.toLocaleString()}): <b class="${sv.verified?"":"no"}">${sv.verified?"intact":"broken"}</b></span>
+        <span>independent implementations <b class="${sv.verified===clientOk?"":"no"}">${sv.verified===clientOk?"agree":"disagree"}</b></span>
+      </div>${why}`;
+    }catch(e){
+      agreeLine = `<div class="note">server verification unavailable</div>`;
+    }
+  }
+
+  v.innerHTML = problems.length
+    ? `<div class="verdict bad"><b>SEGMENT BROKEN</b> — ${problems.length} problem(s) found by independent re-derivation.
+         <ul>${problems.slice(0,8).map(p => `<li>${esc(p)}</li>`).join("")}</ul>
+         ${problems.length>8 ? `<div class="note">…and ${problems.length-8} more</div>` : ""}
+         ${agreeLine}</div>`
+    : `<div class="verdict ok"><b>SEGMENT INTACT</b> — ${bundles.length} entries re-hashed and re-linked here in the browser.
+         <div class="note">anchor ${bundles.length?bundles[0].prev_hash.slice(0,16):"—"}… → head ${bundles.length?bundles[bundles.length-1].entry_hash.slice(0,16):"—"}…  ·  the anchor must be checked against an independently held digest</div>
+         ${agreeLine}</div>`;
+  renderList();
+}
+
+/* ------------------------------------------------------------- rendering */
+function renderHeader(){
+  const m = document.getElementById("mode");
+  const sub = document.getElementById("sub");
+  m.className = "mode " + (MODE === "live" ? "live" : MODE === "offline" ? "offline" : "none");
+  m.textContent = MODE === "live" ? "live" : MODE === "offline" ? "offline snapshot" : "no data";
+
+  if(MODE === "none"){
+    sub.textContent = "no API and no data.js — run  python demo.py  from the ekagra folder";
+    return;
+  }
+  const s = D ? D.sensor : null;
+  const provenance = MODE === "live"
+    ? "served by the enclave API"
+    : "static data.js snapshot · run  python demo.py  for live mode";
+  sub.textContent = s
+    ? `${provenance} · window ${s.window_s}s + ${s.lateness_s}s lateness = ${s.latency_s}s latency · read-only ingest`
+    : `${provenance} · read-only ingest`;
+
+  const c = D ? D.calibration : null;
+  const cells = [
+    ["chain entries", (chain && chain.entries != null ? chain.entries : bundles.length).toLocaleString()],
+    s && ["packets observed", s.packets_observed.toLocaleString()],
+    s && ["throughput", s.packets_per_s.toLocaleString() + " pkt/s"],
+    chain && chain.alerts != null && ["alerts", chain.alerts.toLocaleString()],
+    c && ["abstention", (100*c.abstention_rate).toFixed(1) + "%"],
+    c && ["coverage", c.empirical_coverage.toFixed(3)],
+  ].filter(Boolean);
+  document.getElementById("stats").innerHTML = cells.map(([k,v]) =>
+    `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
+}
+
+function passes(b){
+  const fc = document.getElementById("fClass").value;
+  const fd = document.getElementById("fDecision").value;
+  return (!fc || b.threat_class === fc) && (!fd || b.decision === fd);
+}
+function updateCount(){
+  const total = chain && chain.entries != null ? chain.entries : bundles.length;
+  document.getElementById("count").textContent =
+    `${shown} shown · newest ${bundles.length} of ${total.toLocaleString()} logged`;
+}
+function rowHTML(b, fresh){
+  const abst = b.decision === "ABSTAIN";
+  const cls = abst ? "t-abstain" : "t-" + b.css_class;
+  const label = `${abst ? "abstain" : b.threat_class}, host ${b.host}, `
+              + `${abst ? "" : `severity ${b.severity}, `}`
+              + `confidence ${(100*b.confidence).toFixed(0)} percent, sequence ${b.seq}`;
+  return `<div class="alert ${selected===b.seq?"sel":""} ${broken.has(b.seq)?"broken":""} ${fresh===b.seq?"fresh":""}"
+       data-seq="${esc(b.seq)}" role="button" tabindex="0"
+       aria-pressed="${selected===b.seq}" aria-label="${esc(label)}">
+    <span class="tag ${cls}">${abst ? "abstain" : esc(b.threat_class)}</span>
+    <span class="who">${esc(b.host)}<small class="mono">${esc(b.alert_id)} · window ${esc(b.window)}</small>
+      ${abst ? "" : `<span class="sev sev-${esc(b.severity)}"><i></i>${esc(b.severity)}</span>`}</span>
+    <span class="conf">${(100*b.confidence).toFixed(1)}%<br><small class="mono" style="color:var(--ink3)">#${esc(b.seq)}</small></span>
+  </div>`;
+}
+function renderList(fresh){
+  const rows = bundles.filter(passes);
+  shown = rows.length;
+  updateCount();
+  document.getElementById("list").innerHTML =
+    rows.map(b => rowHTML(b, fresh)).join("") ||
+    `<div class="empty">No alerts match this filter.</div>`;
+}
+/* Append one row rather than rebuilding the list.
+   A replay pushes 400 alerts; re-rendering everything per event is quadratic
+   and measurably so - it locked the page for about eight seconds and hid the
+   arrival effect the replay exists to demonstrate. */
+function appendRow(raw){
+  const b = normalise(raw);
+  bundles.push(b);
+  if(!passes(b)){ updateCount(); return; }
+  const el = document.getElementById("list");
+  if(shown === 0) el.innerHTML = "";
+  el.insertAdjacentHTML("beforeend", rowHTML(b, b.seq));
+  shown++;
+  updateCount();
+}
+
+async function renderDetail(){
+  const host = document.getElementById("detail");
+  const b = bundles.find(x => x.seq === selected);
+  if(!b){ host.innerHTML = `<div class="empty">Select an alert to inspect its evidence bundle.</div>`; return; }
+
+  /* The list view omits feature vectors - hundreds of KB per page for no
+     benefit. Fetch the full bundle on demand in live mode. */
+  if(MODE === "live" && !b.features){
+    try{ Object.assign(b, normalise(await api("api/alerts/" + b.seq))); }
+    catch(e){ /* render what we have */ }
+  }
+
+  const obs = b.observed || {};
+  const abst = b.decision === "ABSTAIN";
+  // Severity is derived from threat_class, and an abstention does not assert a
+  // class - so on those rows the figure is conditional and says so here, and is
+  // hidden from the list entirely rather than reading as a triage priority.
+  const abstainNote = abst
+    ? " This alert ABSTAINED, so the class is not asserted and this figure is "
+      + "conditional - it is hidden in the list for that reason."
+    : "";
+  const feats = Object.entries(b.features || {})
+    .filter(([,v]) => v !== 0)
+    .sort((a,c) => Math.abs(c[1]) - Math.abs(a[1])).slice(0, 14);
+  host.innerHTML = `
+    <div class="panel">
+      <dl class="kv">
+        <dt>alert</dt><dd class="mono">${esc(b.alert_id)}</dd>
+        <dt>decision</dt><dd><b>${esc(b.decision)}</b> · ${esc(b.threat_class)} · confidence ${(100*b.confidence).toFixed(2)}%</dd>
+        <dt>severity</dt><dd><span class="sev sev-${esc(b.severity)}"><i></i>${esc(b.severity)}</span>
+          <small style="color:var(--ink3)"> — impact if the class is correct
+          (${b.severity_score.toFixed(2)}). Independent of confidence: a
+          low-confidence exfiltration outranks a certain port scan.${esc(abstainNote)}</small></dd>
+        <dt>observed</dt><dd>window ${esc(b.window)} · host ${esc(b.host)} · ${esc(obs.flows_in_window ?? "?")} flows · ${esc(obs.peers ?? "?")} peers</dd>
+        <dt>ground truth</dt><dd>${esc(obs.true_label ?? "n/a")}</dd>
+      </dl>
+      <h2>Chain of custody</h2>
+      <dl class="kv">
+        <dt>sequence</dt><dd class="mono">#${esc(b.seq)}</dd>
+        <dt>prev hash</dt><dd class="mono hash">${esc(b.prev_hash)}</dd>
+        <dt>entry hash</dt><dd class="mono hash">${esc(b.entry_hash)}</dd>
+        <dt>HMAC</dt><dd class="mono" style="color:var(--ink2)">${b.hmac ? esc(b.hmac) : "—"}</dd>
+        <dt>model</dt><dd class="mono" style="color:var(--ink2)">${esc(b.model_hash.slice(0,32))}…</dd>
+        <dt>features</dt><dd class="mono" style="color:var(--ink2)">${esc(b.feature_hash.slice(0,32))}…</dd>
+      </dl>
+      <p class="note">The HMAC is shown, not verified here: its key stays in the enclave.
+      The browser can only re-derive the hash chain, which is integrity — not authorship.</p>
+    </div>
+    <div class="panel">
+      <h2>Decision path</h2>
+      <div class="mono" style="font-size:12px;color:var(--ink2)">${(b.decision_path||[]).map(esc).join(" → ") || "—"}</div>
+    </div>
+    <div class="panel">
+      <h2>Feature vector${feats.length ? " (non-zero, top 14 by magnitude)" : ""}</h2>
+      ${feats.length
+        ? `<table>${feats.map(([k,v]) =>
+            `<tr><td class="mono">${esc(k)}</td><td class="mono">${Number(v).toFixed(3)}</td></tr>`).join("")}</table>`
+        : `<div class="note">not available for this entry</div>`}
+    </div>`;
+}
+
+/* ---------------------------------------------------------------- replay */
+/* A replay, not a live tail, and the button says so. The sensor writes the log
+   in a separate process; presenting a replay as a live feed would misrepresent
+   where the data comes from. */
+function stopReplay(){
+  if(es){ es.close(); es = null; }
+  document.getElementById("replay").innerHTML = "&#9654; Replay";
+}
+function startReplay(){
+  if(es){ stopReplay(); return; }
+  const start = Math.max(0, chain.entries - SEGMENT);
+  bundles = []; selected = null; broken = new Set();
+  document.getElementById("verdict").innerHTML =
+    `<div class="verdict busy">streaming from /events…</div>`;
+  renderDetail(); renderList();
+  document.getElementById("replay").innerHTML = "&#9632; Stop";
+  es = new EventSource("events?start=" + start + "&limit=" + SEGMENT);
+  const scroller = document.getElementById("list").closest(".col");
+  es.addEventListener("alert", ev => {
+    appendRow(JSON.parse(ev.data));
+    scroller.scrollTop = scroller.scrollHeight;
+  });
+  es.addEventListener("end", () => {
+    stopReplay();
+    pristine = JSON.stringify(bundles);
+    document.getElementById("verdict").innerHTML =
+      `<div class="verdict busy">${bundles.length} alerts streamed from /events as server-sent events. Verify the chain.</div>`;
+  });
+  es.onerror = () => stopReplay();
+}
+
+/* --------------------------------------------------------------- findings */
+/* The evidence behind the claims, in the same window as the alerts. A judge who
+   asks "how do you know?" should not have to be sent to a repository. */
+let figsLoaded = false;
+
+async function loadFigures(){
+  if(figsLoaded) return;
+  const host = document.getElementById("figs");
+  if(MODE !== "live"){
+    host.innerHTML = `<div class="fig"><p>Figures are served by the API. Run
+      <span class="mono">python demo.py</span> from the ekagra folder to see them.</p></div>`;
+    figsLoaded = true;
+    return;
+  }
+  host.innerHTML = `<div class="fig"><p>loading…</p></div>`;
+  try{
+    const figs = await api("api/figures");
+    if(!figs.length){
+      host.innerHTML = `<div class="fig"><p>No figures generated yet. Run
+        <span class="mono">python experiments/make_figures_pipeline.py</span>.</p></div>`;
+    }else{
+      host.innerHTML = figs.map((f, i) => `<div class="fig">
+        <div class="n">Figure ${i + 1}</div>
+        <h3>${esc(f.title)}</h3>
+        <p>${esc(f.claim)}</p>
+        <img src="figures/${encodeURIComponent(f.file)}" alt="${esc(f.title)}" loading="lazy">
+      </div>`).join("");
+    }
+    figsLoaded = true;
+  }catch(e){
+    host.innerHTML = `<div class="fig"><p>Could not load figures: ${esc(e.message)}</p></div>`;
+  }
+}
+
+function showTab(which, focus){
+  const ops = which === "ops";
+  const t1 = document.getElementById("tabOps"), t2 = document.getElementById("tabFind");
+  document.getElementById("ops").hidden = !ops;
+  document.getElementById("findings").hidden = ops;
+  t1.setAttribute("aria-selected", String(ops));
+  t2.setAttribute("aria-selected", String(!ops));
+  // Roving tabindex: one stop for the whole tablist, arrows move within it.
+  t1.tabIndex = ops ? 0 : -1;
+  t2.tabIndex = ops ? -1 : 0;
+  if(focus) (ops ? t1 : t2).focus();
+  if(!ops) loadFigures();
+}
+document.getElementById("tabOps").onclick = () => showTab("ops");
+document.getElementById("tabFind").onclick = () => showTab("find");
+document.querySelector(".tabs").addEventListener("keydown", ev => {
+  if(ev.key !== "ArrowLeft" && ev.key !== "ArrowRight" &&
+     ev.key !== "Home" && ev.key !== "End") return;
+  ev.preventDefault();
+  const toOps = ev.key === "ArrowLeft" || ev.key === "Home"
+    || (ev.key === "ArrowRight" && ev.target.id === "tabFind");
+  showTab(toOps && ev.key !== "End" ? "ops" : "find", true);
+});
+
+/* --------------------------------------------------------------- actions */
+/* One delegated listener instead of one per row. Rows are replaced wholesale on
+   every render and streamed in one at a time during a replay; re-binding 400
+   handlers each time was half the cost of the freeze. Selection also moves a
+   class rather than re-rendering the list. */
+function selectRow(row){
+  selected = +row.dataset.seq;
+  const prev = document.querySelector(".alert.sel");
+  if(prev){ prev.classList.remove("sel"); prev.setAttribute("aria-pressed", "false"); }
+  row.classList.add("sel");
+  row.setAttribute("aria-pressed", "true");
+  renderDetail();
+}
+const listEl = document.getElementById("list");
+listEl.addEventListener("click", ev => {
+  const row = ev.target.closest(".alert");
+  if(row) selectRow(row);
+});
+listEl.addEventListener("keydown", ev => {
+  const row = ev.target.closest(".alert");
+  if(!row) return;
+  if(ev.key === "Enter" || ev.key === " "){
+    ev.preventDefault();               // Space would scroll the column
+    selectRow(row);
+  }else if(ev.key === "ArrowDown" || ev.key === "ArrowUp"){
+    ev.preventDefault();
+    const rows = [...listEl.querySelectorAll(".alert")];
+    const next = rows[rows.indexOf(row) + (ev.key === "ArrowDown" ? 1 : -1)];
+    if(next) next.focus();
+  }
+});
+
+document.getElementById("verify").onclick = doVerify;
+document.getElementById("replay").onclick = startReplay;
+document.getElementById("reset").onclick = () => {
+  bundles = JSON.parse(pristine); broken = new Set();
+  document.getElementById("verdict").innerHTML = "";
+  renderList(); renderDetail();
+};
+document.getElementById("tamper").onclick = async () => {
+  const b = bundles.find(x => x.seq === selected) || bundles[Math.floor(bundles.length/2)];
+  if(!b) return;
+  selected = b.seq;
+  b.threat_class = b.threat_class === "benign" ? "ddos" : "benign";
+  await doVerify();
+  renderDetail();
+};
+document.getElementById("fClass").onchange = () => renderList();
+document.getElementById("fDecision").onchange = () => renderList();
+
+boot();
+</script>
+</body>
+</html>

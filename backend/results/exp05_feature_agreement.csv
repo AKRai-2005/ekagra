@@ -1,0 +1,17 @@
+feature,pearson_r,mean_rel_err,frac_bitwise_equal
+hw_src_bytes_vs_baseline,0.9996975501399976,0.8454301331165731,0.0005650483423919545
+hw_src_n_dports,0.9999916961995824,0.001297485704017723,0.8131091215434934
+hw_src_iat_mean,0.9999999999999998,4.521797000738447e-17,1.0
+hw_src_n_peers,0.9999999999999998,0.0,1.0
+hw_dst_flows_per_src,0.9999999999999999,0.0,1.0
+hw_src_peer_concentration,1.0,0.0,1.0
+hw_src_n_flows,1.0,0.0,1.0
+hw_src_fanout_per_flow,1.0,0.0,1.0
+hw_src_iat_cv,1.0,1.3422865507063082e-15,1.0
+hw_src_fwd_bytes,1.0,0.0,1.0
+hw_src_fwd_pkts,1.0,0.0,1.0
+hw_dst_n_flows,1.0,0.0,1.0
+hw_dst_n_srcs,1.0,0.0,1.0
+hw_dst_src_entropy,1.0,0.0,1.0
+hw_dst_fwd_pkts,1.0,0.0,1.0
+hw_dst_fwd_bytes,1.0,0.0,1.0

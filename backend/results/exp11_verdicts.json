@@ -1,0 +1,161 @@
+{
+ "n_benign_distinct": 279,
+ "n_benign_held_out": 279,
+ "n_per_family": 2000,
+ "per_family": {
+  "uniform": {
+   "auc": {
+    "entropy": 0.9787,
+    "length": 0.9614,
+    "digit_ratio": 0.9706,
+    "bigram_surprisal": 0.9681
+   },
+   "best_feature": "entropy",
+   "combined_auc": 0.9787
+  },
+  "conficker": {
+   "auc": {
+    "entropy": 0.6827,
+    "length": 0.6964,
+    "digit_ratio": 0.4534,
+    "bigram_surprisal": 0.9402
+   },
+   "best_feature": "bigram_surprisal",
+   "combined_auc": 0.9402
+  },
+  "necurs": {
+   "auc": {
+    "entropy": 0.8419,
+    "length": 0.8438,
+    "digit_ratio": 0.4534,
+    "bigram_surprisal": 0.9434
+   },
+   "best_feature": "bigram_surprisal",
+   "combined_auc": 0.9434
+  },
+  "banjori": {
+   "auc": {
+    "entropy": 0.5843,
+    "length": 0.5601,
+    "digit_ratio": 0.4875,
+    "bigram_surprisal": 0.7475
+   },
+   "best_feature": "bigram_surprisal",
+   "combined_auc": 0.7475
+  },
+  "suppobox": {
+   "auc": {
+    "entropy": 0.6654,
+    "length": 0.6949,
+    "digit_ratio": 0.4534,
+    "bigram_surprisal": 0.5183
+   },
+   "best_feature": "length",
+   "combined_auc": 0.6949
+  },
+  "matsnu": {
+   "auc": {
+    "entropy": 0.8209,
+    "length": 0.8941,
+    "digit_ratio": 0.4534,
+    "bigram_surprisal": 0.5436
+   },
+   "best_feature": "length",
+   "combined_auc": 0.8941
+  }
+ },
+ "recall_by_fpr": {
+  "1%": {
+   "uniform": 0.662,
+   "conficker": 0.0,
+   "necurs": 0.24,
+   "banjori": 0.0285,
+   "suppobox": 0.004,
+   "matsnu": 0.037
+  },
+  "5%": {
+   "uniform": 0.8655,
+   "conficker": 0.018,
+   "necurs": 0.4635,
+   "banjori": 0.067,
+   "suppobox": 0.05,
+   "matsnu": 0.2095
+  },
+  "10%": {
+   "uniform": 0.9575,
+   "conficker": 0.127,
+   "necurs": 0.6115,
+   "banjori": 0.146,
+   "suppobox": 0.1665,
+   "matsnu": 0.4605
+  }
+ },
+ "length_controlled_auc": {
+  "uniform": 0.9672,
+  "conficker": 0.9402,
+  "necurs": 0.9414,
+  "banjori": 0.7575,
+  "suppobox": 0.6939,
+  "matsnu": 0.8875
+ },
+ "bigram_warmup_auc": {
+  "10": {
+   "uniform": 0.5599,
+   "conficker": 0.5706,
+   "necurs": 0.5594,
+   "banjori": 0.4821,
+   "suppobox": 0.4813,
+   "matsnu": 0.447
+  },
+  "25": {
+   "uniform": 0.7549,
+   "conficker": 0.7331,
+   "necurs": 0.7296,
+   "banjori": 0.5801,
+   "suppobox": 0.4241,
+   "matsnu": 0.4608
+  },
+  "50": {
+   "uniform": 0.7823,
+   "conficker": 0.7469,
+   "necurs": 0.748,
+   "banjori": 0.5609,
+   "suppobox": 0.3684,
+   "matsnu": 0.3803
+  },
+  "100": {
+   "uniform": 0.9456,
+   "conficker": 0.8937,
+   "necurs": 0.9001,
+   "banjori": 0.6233,
+   "suppobox": 0.4064,
+   "matsnu": 0.3871
+  },
+  "200": {
+   "uniform": 0.9761,
+   "conficker": 0.9465,
+   "necurs": 0.9528,
+   "banjori": 0.7147,
+   "suppobox": 0.446,
+   "matsnu": 0.491
+  },
+  "239": {
+   "uniform": 0.9592,
+   "conficker": 0.9207,
+   "necurs": 0.9237,
+   "banjori": 0.6805,
+   "suppobox": 0.4078,
+   "matsnu": 0.4395
+  }
+ },
+ "transfer_fpr_generated_to_real": 0.8961,
+ "verdicts": {
+  "D1": true,
+  "D2": false,
+  "D3": true,
+  "D4": false,
+  "D5": true,
+  "D6": false
+ },
+ "note": "No query name from the capture is stored here."
+}

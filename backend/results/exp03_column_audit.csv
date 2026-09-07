@@ -1,0 +1,109 @@
+column,class
+Flow ID,meta
+Src IP,meta
+Src Port,forward-observable
+Dst IP,meta
+Dst Port,forward-observable
+Protocol,forward-observable
+Timestamp,meta
+Flow Duration,bidirectional-aggregate
+Total Fwd Packet,forward-observable
+Total Bwd packets,backward-derived
+Total Length of Fwd Packet,forward-observable
+Total Length of Bwd Packet,backward-derived
+Fwd Packet Length Max,forward-observable
+Fwd Packet Length Min,forward-observable
+Fwd Packet Length Mean,forward-observable
+Fwd Packet Length Std,forward-observable
+Bwd Packet Length Max,backward-derived
+Bwd Packet Length Min,backward-derived
+Bwd Packet Length Mean,backward-derived
+Bwd Packet Length Std,backward-derived
+Flow Bytes/s,bidirectional-aggregate
+Flow Packets/s,bidirectional-aggregate
+Flow IAT Mean,bidirectional-aggregate
+Flow IAT Std,bidirectional-aggregate
+Flow IAT Max,bidirectional-aggregate
+Flow IAT Min,bidirectional-aggregate
+Fwd IAT Total,forward-observable
+Fwd IAT Mean,forward-observable
+Fwd IAT Std,forward-observable
+Fwd IAT Max,forward-observable
+Fwd IAT Min,forward-observable
+Bwd IAT Total,backward-derived
+Bwd IAT Mean,backward-derived
+Bwd IAT Std,backward-derived
+Bwd IAT Max,backward-derived
+Bwd IAT Min,backward-derived
+Fwd PSH Flags,forward-observable
+Bwd PSH Flags,backward-derived
+Fwd URG Flags,forward-observable
+Bwd URG Flags,backward-derived
+Fwd RST Flags,forward-observable
+Bwd RST Flags,backward-derived
+Fwd Header Length,forward-observable
+Bwd Header Length,backward-derived
+Fwd Packets/s,forward-observable
+Bwd Packets/s,backward-derived
+Packet Length Min,bidirectional-aggregate
+Packet Length Max,bidirectional-aggregate
+Packet Length Mean,bidirectional-aggregate
+Packet Length Std,bidirectional-aggregate
+FIN Flag Count,bidirectional-aggregate
+SYN Flag Count,bidirectional-aggregate
+RST Flag Count,bidirectional-aggregate
+PSH Flag Count,bidirectional-aggregate
+ACK Flag Count,bidirectional-aggregate
+URG Flag Count,bidirectional-aggregate
+CWR Flag Count,bidirectional-aggregate
+ECE Flag Count,bidirectional-aggregate
+Down/Up Ratio,backward-derived
+Fwd Segment Size Avg,forward-observable
+Bwd Segment Size Avg,backward-derived
+Fwd Bytes/Bulk Avg,forward-observable
+Fwd Packet/Bulk Avg,forward-observable
+Fwd Bulk Rate Avg,forward-observable
+Bwd Bytes/Bulk Avg,backward-derived
+Bwd Packet/Bulk Avg,backward-derived
+Bwd Bulk Rate Avg,backward-derived
+Subflow Fwd Packets,forward-observable
+Subflow Fwd Bytes,forward-observable
+Subflow Bwd Packets,backward-derived
+Subflow Bwd Bytes,backward-derived
+FWD Init Win Bytes,forward-observable
+Bwd Init Win Bytes,backward-derived
+Fwd Act Data Pkts,forward-observable
+Bwd Act Data Pkts,backward-derived
+Fwd Seg Size Min,forward-observable
+Bwd Seg Size Min,backward-derived
+Active Mean,bidirectional-aggregate
+Active Std,bidirectional-aggregate
+Active Max,bidirectional-aggregate
+Active Min,bidirectional-aggregate
+Idle Mean,bidirectional-aggregate
+Idle Std,bidirectional-aggregate
+Idle Max,bidirectional-aggregate
+Idle Min,bidirectional-aggregate
+ICMP Code,bidirectional-aggregate
+ICMP Type,bidirectional-aggregate
+Fwd TCP Retrans. Count,forward-observable
+Bwd TCP Retrans. Count,backward-derived
+Total TCP Retrans. Count,bidirectional-aggregate
+Total Connection Flow Time,bidirectional-aggregate
+Fwd Segment Payload Length Total,forward-observable
+Fwd Segment Payload Length Max,forward-observable
+Fwd Segment Payload Length Min,forward-observable
+Fwd Segment Payload Length Mean,forward-observable
+Fwd Segment Payload Length Std,forward-observable
+Bwd Segment Payload Length Total,backward-derived
+Bwd Segment Payload Length Max,backward-derived
+Bwd Segment Payload Length Min,backward-derived
+Bwd Segment Payload Length Mean,backward-derived
+Bwd Segment Payload Length Std,backward-derived
+Segment Payload Length Max,bidirectional-aggregate
+Segment Payload Length Min,bidirectional-aggregate
+Segment Payload Length Mean,bidirectional-aggregate
+Segment Payload Length Std,bidirectional-aggregate
+Fwd Segment Header Length Min,forward-observable
+Bwd Segment Header Length Min,backward-derived
+Label,meta

@@ -1,0 +1,48 @@
+{
+  "window_s": 60.0,
+  "n_flows": 877801,
+  "binary_f1": {
+    "A_FULL": 0.9792894364954483,
+    "C_MATCHED": 0.6902859878956935,
+    "E_SENSOR": 0.9810129191051662,
+    "F_FULL_PLUS_HW": 0.9810991253285417,
+    "G_HW_ONLY": 0.9812045795869379
+  },
+  "macro_f1": {
+    "A_FULL": 0.399924556410254,
+    "C_MATCHED": 0.3110270544409415,
+    "E_SENSOR": 0.4659888275303807,
+    "F_FULL_PLUS_HW": 0.5593074104142393,
+    "G_HW_ONLY": 0.599497381220827
+  },
+  "fraction_of_residual_gap_closed": 1.0059635364839703,
+  "top10_features": [
+    "hw_dst_flows_per_src",
+    "hw_src_fanout_per_flow",
+    "hw_dst_fwd_pkts",
+    "Fwd Packet Length Max",
+    "hw_src_n_dports",
+    "Fwd Segment Header Length Min",
+    "Subflow Fwd Bytes",
+    "Fwd PSH Flags",
+    "hw_src_fwd_pkts",
+    "Subflow Fwd Packets"
+  ],
+  "host_window_in_top10": [
+    "hw_dst_flows_per_src",
+    "hw_src_fanout_per_flow",
+    "hw_dst_fwd_pkts",
+    "hw_src_n_dports",
+    "hw_src_fwd_pkts"
+  ],
+  "verdicts": {
+    "T1": true,
+    "T2": true,
+    "T3": true
+  },
+  "is_lower_bound_because": [
+    "TTL diversity requires packet data",
+    "DNS query-name entropy requires packet data",
+    "TLS client fingerprint requires packet data"
+  ]
+}

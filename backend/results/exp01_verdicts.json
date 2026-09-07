@@ -1,0 +1,61 @@
+{
+  "macro_f1_full": 0.9262822578962154,
+  "predictions_were_registered_before_running": true,
+  "verdicts": {
+    "P1": false,
+    "P2": false,
+    "P3": false,
+    "P4": false
+  },
+  "enrichment_rung_cost": -0.04480380123955452,
+  "direction_rung_cost": 0.033216934594973546,
+  "headline": {
+    "naive_deployment_cost": -0.2154908098639826,
+    "recovered_by_matched_retraining": 0.2270776765085636,
+    "residual_vs_full": 0.011586866644580973
+  },
+  "per_class": {
+    "benign": {
+      "full": 0.9892566782810686,
+      "deployed": 0.8875739644970414,
+      "retrained": 0.9768384481760278,
+      "drop": -0.10168271378402716
+    },
+    "ddos": {
+      "full": 1.0,
+      "deployed": 1.0,
+      "retrained": 1.0,
+      "drop": 0.0
+    },
+    "beacon": {
+      "full": 0.9897109260166586,
+      "deployed": 0.7270578968097676,
+      "retrained": 0.9360845495722194,
+      "drop": -0.26265302920689093
+    },
+    "dga": {
+      "full": 0.6015037593984962,
+      "deployed": 0.312,
+      "retrained": 0.7079646017699115,
+      "drop": -0.2895037593984962
+    },
+    "encrypted": {
+      "full": 0.9834254143646409,
+      "deployed": 0.16748768472906403,
+      "retrained": 0.9781420765027322,
+      "drop": -0.8159377296355769
+    },
+    "scan": {
+      "full": 0.9932497589199615,
+      "deployed": 0.9545913218970736,
+      "retrained": 0.989310009718173,
+      "drop": -0.03865843702288785
+    },
+    "exfil": {
+      "full": 0.926829268292683,
+      "deployed": 0.926829268292683,
+      "retrained": 0.9767441860465116,
+      "drop": 0.0
+    }
+  }
+}

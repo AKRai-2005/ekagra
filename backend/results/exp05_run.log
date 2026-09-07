@@ -1,0 +1,62 @@
+==============================================================================
+EKAGRA  ·  Experiment 05  ·  Streaming vs batch host-window features
+==============================================================================
+
+[1/5] Loading corpus ...
+      read 1,926,629 flows, kept 877,801 (all attacks + 30% of benign)
+
+[2/5] Batch (pandas groupby) reference ...
+      4.3s   (205,718 flows/s)
+
+[3/5] Streaming (single pass, bounded memory) ...
+      3.9s   (225,907 flows/s, untraced)
+      emitted 132,782 (window, host) rows over 2,446 windows
+      peak traced memory 2.58 MB (sensor state only)   evicted hosts 0
+      distinct hosts seen 14,817
+      latency = window length = 60s
+
+[4/5] Per-feature agreement ...
+      feature                                 r   mean_rel_err    exact
+      hw_src_bytes_vs_baseline           0.9997        0.84543    0.001  <- differs by design
+      hw_src_n_dports                    1.0000        0.00130    0.813
+      hw_src_iat_mean                    1.0000        0.00000    1.000
+      hw_src_n_peers                     1.0000        0.00000    1.000
+      hw_dst_flows_per_src               1.0000        0.00000    1.000
+      hw_src_peer_concentration          1.0000        0.00000    1.000
+      hw_src_n_flows                     1.0000        0.00000    1.000
+      hw_src_fanout_per_flow             1.0000        0.00000    1.000
+      hw_src_iat_cv                      1.0000        0.00000    1.000
+      hw_src_fwd_bytes                   1.0000        0.00000    1.000
+      hw_src_fwd_pkts                    1.0000        0.00000    1.000
+      hw_dst_n_flows                     1.0000        0.00000    1.000
+      hw_dst_n_srcs                      1.0000        0.00000    1.000
+      hw_dst_src_entropy                 1.0000        0.00000    1.000
+      hw_dst_fwd_pkts                    1.0000        0.00000    1.000
+      hw_dst_fwd_bytes                   1.0000        0.00000    1.000
+
+[5/5] Downstream detector, batch vs streaming features ...
+      split at window 4721: 617,478 train / 260,323 test
+      G  host-window only  (batch)       binary-F1 0.9812
+      G' host-window only  (streaming)   binary-F1 0.9812
+      E  forward + host-window (batch)   binary-F1 0.9810
+      E' forward + host-window (streaming) binary-F1 0.9812
+
+==============================================================================
+PRE-REGISTERED PREDICTIONS
+==============================================================================
+  U1  HOLDS   all features except the baseline correlate > 0.99 (worst: hw_src_n_dports r=1.0000)
+  U2  HOLDS   downstream F1 within 0.01 (E +0.0001, G -0.0000)
+  U3  HOLDS   throughput > 50k flows/s (225,907)
+  U4  HOLDS   no host evictions at max_hosts=50,000 (0)
+
+==============================================================================
+HEADLINE
+==============================================================================
+  batch (groupby, cannot deploy)       4.3s      205,718 flows/s
+  streaming (single pass)              3.9s      225,907 flows/s
+  peak traced memory                  2.58 MB for 877,801 flows / 14,817 hosts
+  detector F1, batch features     0.9810
+  detector F1, streaming features 0.9812   (+0.0001)
+
+  wrote results/exp05_verdicts.json and exp05_feature_agreement.csv
+  total runtime 693.7s

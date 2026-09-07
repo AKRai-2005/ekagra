@@ -1,0 +1,77 @@
+==============================================================================
+EKAGRA  ·  Experiment 10  ·  Does the host-window result survive
+                             low-rate, temporally diffuse attacks?
+==============================================================================
+
+[1/3] Loading corpus (benign_keep=0.6) ...
+      read 1,926,629 flows, kept 1,327,136 (all attacks + 60% of benign)
+      frame 1,239 MB -> 583 MB
+      1,327,136 flows, 428,196 attack (32.3%)
+      15 blend hosts x 6,247 windows = 93,705 cells of capacity
+      attack budget 15,000: Web Attack - SQL Injection - Attempted 5/5, Heartbleed 11/11, FTP-Patator - Attempted 12/12, Web Attack - SQL Injection 13/13, Web Attack - XSS 18/18, SSH-Patator - Attempted 27/27, Infiltration 36/36, Infiltration - Attempted 45/45, Web Attack - Brute Force 73/73, DoS GoldenEye - Attempted 80/80, Botnet 431/431, DoS Hulk - Attempted 581/581, Web Attack - XSS - Attempted 654/654, Web Attack - Brute Force - Attempted 1,001/1,290, DoS Slowhttptest 1,001/1,740, DoS Slowloris - Attempted 1,001/1,847, SSH-Patator 1,001/2,959, DoS Slowhttptest - Attempted 1,001/3,362, Botnet - Attempted 1,001/3,399, DoS Slowloris 1,001/3,855, FTP-Patator 1,001/3,967, DoS GoldenEye 1,001/7,531, Infiltration - Portscan 1,001/71,695, DDoS 1,001/75,308, Portscan 1,001/91,735, DoS Hulk 1,002/157,522
+      913,940 flows kept, 15,000 attack (1.6%) - constant across the sweep
+
+[2/3] Density sweep ...
+
+  --- 64 attack flows per cell (bursty end)
+      diffused in 1.1s   248 attack cells, 60.5 flows/cell, dilution 0.408
+      host-window features in 5.7s
+      A_FULL       macro-F1 0.8475   binary-F1 0.9829
+      C_MATCHED    macro-F1 0.7797   binary-F1 0.9368
+      E_SENSOR     macro-F1 0.7418   binary-F1 0.9348
+      G_HW_ONLY    macro-F1 0.3516   binary-F1 0.8690
+
+  --- 16 attack flows per cell 
+      diffused in 1.1s   867 attack cells, 17.3 flows/cell, dilution 0.245
+      host-window features in 5.5s
+      A_FULL       macro-F1 0.8555   binary-F1 0.9824
+      C_MATCHED    macro-F1 0.8396   binary-F1 0.9836
+      E_SENSOR     macro-F1 0.7886   binary-F1 0.9789
+      G_HW_ONLY    macro-F1 0.2985   binary-F1 0.8158
+
+  --- 4 attack flows per cell 
+      diffused in 1.0s   2,886 attack cells, 5.2 flows/cell, dilution 0.189
+      host-window features in 5.4s
+      A_FULL       macro-F1 0.7709   binary-F1 0.9370
+      C_MATCHED    macro-F1 0.8310   binary-F1 0.9792
+      E_SENSOR     macro-F1 0.7981   binary-F1 0.9360
+      G_HW_ONLY    macro-F1 0.2662   binary-F1 0.7798
+
+  --- 1 attack flows per cell (one flow alone in its cell)
+      diffused in 1.1s   9,800 attack cells, 1.5 flows/cell, dilution 0.199
+      host-window features in 5.5s
+      A_FULL       macro-F1 0.8636   binary-F1 0.9415
+      C_MATCHED    macro-F1 0.8900   binary-F1 0.9943
+      E_SENSOR     macro-F1 0.8705   binary-F1 0.9401
+      G_HW_ONLY    macro-F1 0.2770   binary-F1 0.7758
+
+[3/3] Negative control: permuted labels at d=1 ...
+      diffused in 1.2s   9,800 attack cells, 1.5 flows/cell, dilution 0.199
+      host-window features in 6.1s
+      A_FULL       macro-F1 0.0367   binary-F1 0.4958
+      C_MATCHED    macro-F1 0.0367   binary-F1 0.4958
+      E_SENSOR     macro-F1 0.0367   binary-F1 0.4958
+      G_HW_ONLY    macro-F1 0.0367   binary-F1 0.4958
+
+==============================================================================
+SWEEP  (binary-F1)
+==============================================================================
+  flows/cell  dilution   A FULL  C MATCH  E SENSOR  G HW ONLY
+          64     0.408    0.983    0.937     0.935      0.869
+          16     0.245    0.982    0.984     0.979      0.816
+           4     0.189    0.937    0.979     0.936      0.780
+           1     0.199    0.942    0.994     0.940      0.776
+    permuted     0.199    0.496    0.496     0.496      0.496
+
+==============================================================================
+VERDICTS
+==============================================================================
+  Z0  HOLDS  every requested density was physically reachable ok
+  Z1  HOLDS  validity: G >= 0.85 binary-F1 at the bursty end  0.869
+  Z2  FAILS  G loses >= 0.15 binary-F1 from d=64 to d=1       +0.093
+  Z3  HOLDS  at d=1, A beats G by > 0.10 binary-F1            +0.166
+  Z4  FAILS  one-way tap costs more at d=1 than d=64          -0.053 vs +0.046
+  Z5  HOLDS  permuted labels stay below 0.55                  0.496
+
+  wrote results/exp10_density_sweep.csv and exp10_verdicts.json
+  total runtime 2937s

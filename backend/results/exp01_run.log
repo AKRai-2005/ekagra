@@ -1,0 +1,87 @@
+==========================================================================
+EKAGRA  ·  Experiment 01  ·  Visibility Ablation Study
+==========================================================================
+
+[1/4] Generating labelled traffic (seed=1337, 3600s) ...
+      950,821 packets
+      packet label distribution:
+        ddos         691,990  (72.78%)
+        benign       155,145  (16.32%)
+        exfil         55,104  ( 5.80%)
+        scan          23,522  ( 2.47%)
+        dga           11,556  ( 1.22%)
+        encrypted      7,792  ( 0.82%)
+        beacon         5,712  ( 0.60%)
+      enrichment feed: 346,318 known-bad IPs, recall=0.55, fpr=0.03
+
+[2/4] Extracting features under each visibility profile ...
+      FULL_ENRICHED           17,747 rows   (  9.7s)
+      DIODE_FULL              17,747 rows   (  9.2s)
+      DIODE_ONEWAY            17,659 rows   (  5.7s)
+      DIODE_ONEWAY_SAMPLED     2,189 rows   (  1.3s)
+      classes present: ['benign', 'ddos', 'beacon', 'dga', 'encrypted', 'scan', 'exfil']
+
+[3/4] Training and evaluating four conditions per rung ...
+      bi-directional features: 37   unidirectional-native: 26
+      temporal split at window 250 (12,451 train / 5,296 test)
+
+      A  FULL       macro-F1 = 0.9417
+
+      DIODE_FULL
+        B  DEPLOYED   macro-F1 = 0.9716   (+0.0299 vs A)
+        C  RETRAINED  macro-F1 = 0.9691   (+0.0274 vs A)
+        D  NATIVE     macro-F1 = 0.9487   (-0.0204 vs C)
+
+      DIODE_ONEWAY
+        B  DEPLOYED   macro-F1 = 0.6825   (-0.2591 vs A)
+        C  RETRAINED  macro-F1 = 0.9273   (-0.0143 vs A)
+        D  NATIVE     macro-F1 = 0.9283   (+0.0010 vs C)
+
+      Per-class report, D (NATIVE) at DIODE_ONEWAY:
+              precision    recall  f1-score   support
+
+      benign      0.977     0.973     0.975      3459
+        ddos      0.978     1.000     0.989        45
+      beacon      0.943     0.926     0.934      1000
+         dga      0.488     1.000     0.656        40
+   encrypted      0.989     0.962     0.975       184
+        scan      0.996     0.988     0.992       518
+       exfil      1.000     0.955     0.977        22
+
+    accuracy                          0.965      5268
+   macro avg      0.910     0.972     0.928      5268
+weighted avg      0.969     0.965     0.967      5268
+
+
+      DIODE_ONEWAY_SAMPLED
+        B  DEPLOYED   macro-F1 = 0.6843   (-0.2573 vs A)
+        C  RETRAINED  macro-F1 = 0.9573   (+0.0156 vs A)
+        D  NATIVE     macro-F1 = 0.9512   (-0.0061 vs C)
+
+[4/4] Checking pre-registered predictions ...
+      P1  FAILS   B collapses below A at every degraded rung
+      P2  FAILS   C recovers above B but stays below A
+      P3  FAILS   D >= C at every degraded rung  [THE CONTRIBUTION]
+      P4  FAILS   enrichment loss costs more than direction loss
+
+      enrichment rung cost: -0.0274 macro-F1
+      direction  rung cost: +0.0418 macro-F1
+
+      !! P3 REFUTED. The unidirectional-native feature design does not
+         beat visibility-matched retraining. Reported as-is; the
+         contribution is the failure mode and its fix, not a feature set.
+
+==========================================================================
+HEADLINE
+==========================================================================
+  Naive deployment cost      : -0.2591 macro-F1  (0.942 -> 0.683)
+  Recovered by matched retrain: +0.2448 macro-F1  (0.683 -> 0.927)
+  Residual vs full visibility : -0.0143 macro-F1
+
+  Classes that collapse hardest under naive deployment:
+    encrypted  F1 0.984 -> 0.202 (-0.782), recovered to 0.978
+    dga        F1 0.702 -> 0.331 (-0.371), recovered to 0.650
+    beacon     F1 0.993 -> 0.728 (-0.264), recovered to 0.933
+
+      wrote results/exp01_ablation.csv and exp01_verdicts.json
+      total runtime 39.1s

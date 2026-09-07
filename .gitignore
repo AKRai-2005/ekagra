@@ -1,0 +1,27 @@
+# ---------------------------------------------------------------- datasets
+# Third-party corpora. Large, not ours to redistribute, and obtainable from
+# their original sources. See README for how to fetch them.
+data/
+*.zip
+
+# ------------------------------------------------- regenerable run artefacts
+# The evidence log is ~109 MB and is produced by experiment 08 in minutes.
+# Every verdicts JSON, figure and summary CSV in results/ IS tracked - those
+# are the evidence the project's claims rest on.
+**/results/*.jsonl
+*.pkl
+
+# ------------------------------------------------------------------ python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# ------------------------------------------------------------ os / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

@@ -1,0 +1,5 @@
+condition,macro_f1,binary_f1,BENIGN,DoS GoldenEye,DoS GoldenEye - Attempted,DoS Hulk,DoS Hulk - Attempted,DoS Slowhttptest,DoS Slowhttptest - Attempted,DoS Slowloris,DoS Slowloris - Attempted,FTP-Patator,FTP-Patator - Attempted,Heartbleed,Infiltration,Infiltration - Attempted,Infiltration - Portscan,SSH-Patator,SSH-Patator - Attempted,Web Attack - Brute Force,Web Attack - Brute Force - Attempted,Web Attack - SQL Injection,Web Attack - SQL Injection - Attempted,Web Attack - XSS,Web Attack - XSS - Attempted
+A_FULL,0.4665941732943764,0.987728597481947,0.9998919914863877,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.8,0.0,0.9996730482798707,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+B_DEPLOYED,0.14990538710333373,0.5221782068921772,0.6476759047202423,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.4016618050030938,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+C_MATCHED,0.3110355380739486,0.6833364387639423,0.9998284527069528,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.8,0.0,0.9994913899585847,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+D_SAMPLED_1in16,0.9986008792006011,0.6916603843110505,,,,,,,,,,,,,,,,,,,,,,,

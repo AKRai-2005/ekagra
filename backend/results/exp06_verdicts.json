@@ -1,0 +1,81 @@
+{
+  "packets_generated": 905635,
+  "packets_observed": 434360,
+  "assembler": {
+    "flows_emitted": 362557,
+    "closed_by_flags": 900,
+    "closed_by_idle": 361604,
+    "closed_by_active": 0,
+    "evicted_flows": 0,
+    "packets_per_s": 34373.5665974807
+  },
+  "lateness_sweep": [
+    {
+      "lateness_s": 0.0,
+      "flows_kept": 325701,
+      "dropped_late": 36856,
+      "loss_frac": 0.10165573964921377,
+      "cells": 303902,
+      "latency_s": 60.0,
+      "packets_per_s": 37622.89186841334
+    },
+    {
+      "lateness_s": 5.0,
+      "flows_kept": 349579,
+      "dropped_late": 12978,
+      "loss_frac": 0.03579575073712547,
+      "cells": 325736,
+      "latency_s": 65.0,
+      "packets_per_s": 35324.97320351914
+    },
+    {
+      "lateness_s": 15.0,
+      "flows_kept": 362545,
+      "dropped_late": 12,
+      "loss_frac": 3.30982438623444e-05,
+      "cells": 337400,
+      "latency_s": 75.0,
+      "packets_per_s": 34998.570518373715
+    },
+    {
+      "lateness_s": 30.0,
+      "flows_kept": 362556,
+      "dropped_late": 1,
+      "loss_frac": 2.7581869885287e-06,
+      "cells": 337418,
+      "latency_s": 90.0,
+      "packets_per_s": 34474.220555500564
+    },
+    {
+      "lateness_s": 60.0,
+      "flows_kept": 362557,
+      "dropped_late": 0,
+      "loss_frac": 0.0,
+      "cells": 337419,
+      "latency_s": 120.0,
+      "packets_per_s": 35247.513115349524
+    },
+    {
+      "lateness_s": 120.0,
+      "flows_kept": 362557,
+      "dropped_late": 0,
+      "loss_frac": 0.0,
+      "cells": 337419,
+      "latency_s": 180.0,
+      "packets_per_s": 34314.88552731864
+    }
+  ],
+  "f1_by_lateness": {
+    "0.0": 0.897851433082209,
+    "15.0": 0.9014105035156967,
+    "60.0": 0.8999931893876335
+  },
+  "f1_oracle_order": 0.90031315311793,
+  "verdicts": {
+    "V1": true,
+    "V2": true,
+    "V3": true,
+    "V4": false
+  },
+  "note": "synthetic packets - CIC-IDS2017 ships flow records and cannot exercise an assembler. This tests the mechanism, not the exp04 result."
+}
