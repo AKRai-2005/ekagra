@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EKAGRA · enclave console</title>
+<meta name="theme-color" content="#0E1211">
+<!-- The mark: three streams converging on one point. EKAGRA is eka + agra,
+     "one-pointed" - and the sensor is many flows watched by one point of
+     attention. Original artwork: several companies already trade as Ekagra,
+     so borrowing a mark would borrow their trademark. Inline, so the
+     air-gapped enclave never requests /favicon.ico. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230F2724'/%3E%3Cg transform='translate(4.2 4.5) scale(.72)'%3E%3Cg fill='none' stroke='%235FD2C2' stroke-width='3.4' stroke-linecap='round'%3E%3Cpath d='M5 7.5 21 16'/%3E%3Cpath d='M5 16h16'/%3E%3Cpath d='M5 24.5 21 16'/%3E%3C/g%3E%3Ccircle cx='25' cy='16' r='4' fill='%235FD2C2'/%3E%3C/g%3E%3C/svg%3E">
 <!--
   Deliberately self-contained: no CDN, no web fonts, no external anything. The
   enclave this runs in has no route to the internet, so a console that needs one
@@ -26,176 +33,325 @@
   independent implementations can be shown agreeing.
 -->
 <style>
+  /* ================================================================ system
+     The design rationale lives in DESIGN.md. In short: this console proves a
+     chain of evidence is intact, so it is drawn as a ruled, numbered ledger,
+     and colour is reserved for meaning - teal when integrity holds, rust when
+     it breaks, amber for uncertainty. Nothing else is coloured. */
   :root{
-    --bg:#0E1211; --panel:#151B1A; --panel2:#1B2322; --line:#2C3735;
-    --ink:#E6ECEA; --ink2:#9DACA8; --ink3:#6C7B77;
-    --accent:#45BFAF; --accent-dim:#1E4B46;
-    --bad:#E0705A; --warn:#D0A343; --ok:#5BBE7E;
+    /* A dimmed dark theme: 2.7x the luminance of the first near-black one, so
+       it holds up on a projector, with every text token re-derived to clear
+       WCAG AA on every surface it sits on (worst case 5.0:1). */
+    --bg:#1B2323; --surface:#222B2B; --raised:#2A3434;
+    --line:#323E3D; --line2:#44524F; --ctl-line:#6A7874;   /* 3.5:1, non-text AA */
+    --ink:#F0F4F3; --ink2:#C3CDCA; --ink3:#A0ADA9;
+    --teal:#5FD2C2; --teal-dim:#3A9C8F; --teal-fill:#173F3A;
+    --rust:#F08F79; --rust-fill:#3A221C; --rust-row:#2F1F1B;
+    --amber:#E2BA62; --amber-fill:#36301D;
+    --sev-info:#8A9894; --sev-low:#9DB4CB; --sev-medium:#D8C27E;
+    --sev-high:#EDA56A; --sev-critical:#F08F79;
+    /* One step larger than before throughout: read at arm's length and on a
+       projector, 12px data was the limiting factor. */
+    --fs-xs:12px; --fs-sm:13px; --fs-md:14px; --fs-lg:16px; --fs-xl:20px;
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+    --r1:2px; --r2:4px;
+    --t-fast:120ms; --t-med:240ms;
+    --ctl:32px;
+    --sans:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:"Cascadia Mono","Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
   }
   *{box-sizing:border-box}
+  /* An author display rule beats the UA's [hidden] rule, so without this the
+     "hidden" alert console kept rendering underneath the Findings tab. */
+  [hidden]{display:none !important}
+  html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--ink);
-       font:14px/1.5 "Segoe UI",system-ui,sans-serif}
-  .mono{font-family:"Cascadia Mono",Consolas,"Courier New",monospace}
-  header{border-bottom:1px solid var(--line);padding:14px 20px;
-         display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
-  header h1{margin:0;font-size:17px;letter-spacing:.02em;font-weight:600}
-  header .sub{color:var(--ink3);font-size:12px}
-  .mode{font-size:9.5px;font-weight:700;letter-spacing:.11em;padding:2px 7px;
-        border-radius:3px;text-transform:uppercase;vertical-align:2px}
-  .mode.live{background:var(--accent-dim);color:var(--accent);
-             border:1px solid var(--accent)}
-  .mode.offline{background:#2a2a2a;color:var(--warn);border:1px dashed var(--warn)}
-  .mode.none{background:#2d1713;color:var(--bad);border:1px solid var(--bad)}
-  .stats{display:flex;gap:22px;margin-left:auto;flex-wrap:wrap}
-  .stat b{display:block;font-size:15px;font-weight:600}
-  .stat span{font-size:10.5px;color:var(--ink3);text-transform:uppercase;
-             letter-spacing:.09em}
-  main{display:grid;grid-template-columns:minmax(380px,1fr) minmax(430px,1.05fr);
-       gap:0;height:calc(100vh - 62px)}
-  @media(max-width:900px){main{grid-template-columns:1fr;height:auto}}
-  .col{overflow:auto;padding:16px 20px}
-  .col+.col{border-left:1px solid var(--line)}
-  h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;
-     color:var(--ink3);margin:0 0 10px;font-weight:600}
-  .bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
-  button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
-         padding:6px 12px;border-radius:4px;font:inherit;font-size:12.5px;
-         cursor:pointer}
-  button:hover:not(:disabled){border-color:var(--accent)}
-  button:disabled{opacity:.4;cursor:default}
-  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  button.primary{background:var(--accent-dim);border-color:var(--accent);
-                 color:var(--accent)}
-  button.danger{border-color:var(--bad);color:var(--bad)}
-  select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
-         padding:6px 8px;border-radius:4px;font:inherit;font-size:12.5px}
-  .alert{display:grid;grid-template-columns:64px 1fr auto;gap:10px;
-         padding:8px 10px;border:1px solid var(--line);border-radius:4px;
-         margin-bottom:6px;cursor:pointer;background:var(--panel)}
-  .alert:hover{border-color:var(--accent)}
-  .alert.sel{border-color:var(--accent);background:var(--panel2)}
-  .alert.broken{border-color:var(--bad)}
-  .alert.fresh{animation:slide .45s ease}
-  @keyframes slide{from{opacity:0;transform:translateY(-6px)}to{opacity:1}}
-  @media (prefers-reduced-motion:reduce){.alert.fresh{animation:none}}
-  .tag{font-size:10px;text-transform:uppercase;letter-spacing:.07em;
-       padding:2px 6px;border-radius:3px;text-align:center;align-self:center;
-       font-weight:600}
-  .t-ddos{background:#4a1f18;color:#ffb4a2}
-  .t-scan{background:#173a4a;color:#9fd8ee}
-  .t-beacon{background:#3d3417;color:#ecd08a}
-  .t-dga{background:#3a1b45;color:#dcb0ee}
-  .t-encrypted{background:#1d3a2a;color:#9ce0b8}
-  .t-exfil{background:#4a2a17;color:#f0c199}
-  .t-benign{background:#232c2b;color:var(--ink3)}
-  .t-abstain{background:#2a2a2a;color:var(--warn);border:1px dashed var(--warn)}
+       font:420 var(--fs-md)/1.55 var(--sans);display:flex;flex-direction:column;
+       -webkit-font-smoothing:antialiased}
+  .mono,code{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:450}
+  :focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
+  /* ================================================================ header */
+  header{flex:none;border-bottom:1px solid var(--line);padding:var(--s3) var(--s5) 0}
+  .top{display:flex;align-items:flex-start;gap:var(--s5);flex-wrap:wrap}
+  .brand{min-width:0}
+  .brand h1{margin:0;display:flex;align-items:center;gap:var(--s2);
+            font-size:var(--fs-xl);font-weight:650;letter-spacing:.01em;line-height:1.3}
+  .mark{width:26px;height:26px;flex:none;color:var(--teal)}
+  .word{letter-spacing:.05em}
+  .product{color:var(--ink3);font-weight:400}
+  .sub{color:var(--ink3);font-size:var(--fs-sm);margin-top:2px}
+  .sub .reportlink{color:var(--teal);text-decoration:underline;text-underline-offset:2px}
+  .sub .reportlink:hover{color:var(--ink)}
+  /* Status pill: fully rounded, sentence case, a dot for state. The dot does
+     not pulse - "live" here means the console reads the API rather than a
+     saved file, not that alerts are streaming in, and a pulse would say so. */
+  .mode{display:inline-flex;align-items:center;gap:7px;height:24px;padding:0 11px 0 9px;
+        border-radius:999px;font:600 var(--fs-xs)/1 var(--sans);letter-spacing:.01em;
+        border:1px solid transparent;white-space:nowrap;margin-left:var(--s1)}
+  .mode::before{content:"";width:7px;height:7px;border-radius:50%;flex:none;
+                background:currentColor}
+  .mode.live{color:var(--teal);background:var(--teal-fill);border-color:rgba(95,210,194,.32)}
+  /* Hollow dot for a snapshot: the shape, not only the colour, says "not live". */
+  .mode.offline{color:var(--amber);background:var(--amber-fill);border-color:rgba(226,186,98,.32)}
+  .mode.offline::before{background:none;box-shadow:inset 0 0 0 1.6px currentColor}
+  .mode.none{color:var(--rust);background:var(--rust-fill);border-color:rgba(240,143,121,.32)}
+
+  /* Readouts grouped by what they describe, not six equal tiles. */
+  .stats{margin-left:auto;display:flex;gap:var(--s5)}
+  .group{display:flex;gap:var(--s4);padding-left:var(--s5);border-left:1px solid var(--line)}
+  .group:first-child{padding-left:0;border-left:0}
+  .stat{display:flex;flex-direction:column;gap:1px}
+  .stat span{font-size:var(--fs-xs);color:var(--ink3)}
+  .stat b{font:550 var(--fs-lg)/1.25 var(--mono);font-variant-numeric:tabular-nums;
+          white-space:nowrap}
+
+  .tabs{display:flex;gap:var(--s5);margin-top:var(--s3)}
+  .tab{background:none;border:0;border-bottom:2px solid transparent;color:var(--ink3);
+       padding:var(--s1) 0 var(--s2);font:inherit;font-size:var(--fs-md);cursor:pointer;
+       transition:color var(--t-fast),border-color var(--t-fast)}
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--teal);font-weight:600}
+
+  /* ================================================================== panes */
+  main{flex:1;min-height:0;display:grid;
+       grid-template-columns:minmax(460px,1.08fr) minmax(430px,1fr)}
+  .col{min-height:0;display:flex;flex-direction:column}
+  .col + .col{border-left:1px solid var(--line)}
+  .colhead{flex:none;display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;
+           padding:var(--s4) var(--s5) var(--s3)}
+  h2{margin:0;font-size:var(--fs-lg);font-weight:600;margin-right:var(--s2)}
+  .count{margin-left:auto;color:var(--ink3);font-size:var(--fs-sm)}
+
+  /* ================================================================ controls */
+  .btn,select{height:var(--ctl);padding:0 var(--s3);border-radius:var(--r2);
+      font:inherit;font-size:var(--fs-sm);color:var(--ink);background:var(--surface);
+      border:1px solid var(--ctl-line);cursor:pointer;
+      transition:background var(--t-fast),border-color var(--t-fast)}
+  select{padding-right:var(--s2)}
+  .btn:hover:not(:disabled),select:hover{background:var(--raised);border-color:var(--ink3)}
+  .btn:disabled{opacity:.45;cursor:default}
+  .btn.primary{background:var(--teal);border-color:var(--teal);color:#0B1A18;font-weight:600}
+  .btn.primary:hover:not(:disabled){background:#7ADBCD;border-color:#7ADBCD}
+  .btn.warn{color:var(--rust)}
+  .btn.quiet{background:none;border-color:transparent;color:var(--ink2)}
+  .btn.quiet:hover{background:var(--surface);border-color:var(--line2)}
+  .actions{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap}
+  /* Tamper and Reset only exist to demonstrate the verifier. Grouping and
+     labelling them keeps a judge from reading them as operations. */
+  .sim{display:flex;align-items:center;gap:var(--s2);padding-left:var(--s3);
+       border-left:1px solid var(--line2)}
+  .sim-label{font-size:var(--fs-xs);color:var(--ink3)}
+
+  /* ================================================================= ledger */
+  .ledger{flex:1;min-height:0;overflow:auto;container-type:inline-size;
+          border-top:1px solid var(--line)}
+  .ledger-head,.alert{display:grid;column-gap:var(--s3);align-items:center;
+      padding:0 var(--s5);font-family:var(--mono);font-size:var(--fs-sm);font-weight:450;
+      font-variant-numeric:tabular-nums;
+      /* Identity on the left (sequence, class, host, id), assessment on the
+         right (severity, confidence). The slack goes after the id, so a wide
+         pane widens the gap between the two groups rather than opening a void
+         in the middle of the identity. */
+      grid-template-columns:7ch 10ch 17ch minmax(14ch,1fr) 11ch 7ch;
+      grid-template-areas:"seq cls host aid sev conf"}
+  .ledger-head{position:sticky;top:0;z-index:2;background:var(--bg);height:30px;
+      font:var(--fs-xs)/1 var(--sans);color:var(--ink3);border-bottom:1px solid var(--line)}
+  .ledger-head .r,.alert .conf{text-align:right}
+  .ledger-head .seq{text-align:right;padding-right:18px}
+
+  .alert{--row-bg:var(--bg);background:var(--row-bg);min-height:40px;
+         padding-top:var(--s2);padding-bottom:var(--s2);border-bottom:1px solid var(--line);
+         cursor:pointer;transition:background var(--t-fast)}
+  .alert:hover{--row-bg:var(--surface)}
+  .alert.sel{--row-bg:var(--raised);box-shadow:inset 0 0 0 1px var(--line2)}
+  .alert.broken{--row-bg:var(--rust-row)}
+  .alert.broken.sel{--row-bg:#3A241E}
+  .alert:focus-visible{outline-offset:-2px}
+  .alert.fresh{animation:arrive var(--t-med) ease-out}
+  @keyframes arrive{from{opacity:0;transform:translateY(-4px)}to{opacity:1}}
+
+  .alert .seq{grid-area:seq;position:relative;color:var(--ink3);text-align:right;
+              padding-right:18px;align-self:stretch;display:flex;align-items:center;
+              justify-content:flex-end}
+  .alert .cls{grid-area:cls}
+  .alert .host{grid-area:host;color:var(--ink);font-weight:550;overflow:hidden;
+               text-overflow:ellipsis}
+  .alert .aid{grid-area:aid;color:var(--ink3)}
+  .alert .sev{grid-area:sev}
+  .alert .conf{grid-area:conf;color:var(--ink2)}
+  .alert.sel .seq{color:var(--ink2)}
+
+  /* The chain rail. One line down the sequence gutter joins every row: the
+     hash chain, drawn. Neutral until verified; then teal where each link
+     re-derives and rust where it does not. It displays the verifier's result
+     per link, so a tampered entry is visible in the list at the row itself. */
+  .alert .seq::after{content:"";position:absolute;right:4px;width:2px;
+      top:calc(-1 * var(--s2));bottom:calc(-1 * var(--s2) - 1px);background:var(--line2)}
+  .alert .seq::before{content:"";position:absolute;right:1px;top:50%;z-index:1;
+      width:8px;height:8px;margin-top:-4px;border-radius:50%;
+      background:var(--row-bg);border:2px solid var(--line2)}
+  #list[data-chain="verified"] .alert .seq::after{background:var(--teal-dim)}
+  #list[data-chain="verified"] .alert .seq::before{background:var(--teal);border-color:var(--teal)}
+  #list .alert.broken .seq::after{background:var(--rust)}
+  #list .alert.broken .seq::before{background:var(--rust);border-color:var(--rust)}
+
+  /* Threat class is a code, not a colour: colour is kept for state. ABSTAIN is
+     the exception because it IS a state - uncertainty - and its dashed outline
+     is the one shape that says so without relying on hue. */
+  .cls{font:600 var(--fs-xs)/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;
+       color:var(--ink);justify-self:start;padding:3px 0}
+  .cls.t-benign{color:var(--ink3)}
+  .cls.t-abstain{color:var(--amber);background:var(--amber-fill);padding:3px 5px;
+                 border:1px dashed var(--amber);border-radius:var(--r1)}
   /* A class the validator did not recognise. Rendering it neutrally beats
      letting an unvetted value near a class attribute. */
-  .t-unknown{background:#2d1713;color:var(--bad);border:1px solid var(--bad)}
-  .who{font-size:12.5px}
-  .who small{color:var(--ink3);display:block;font-size:11px}
-  .conf{font-size:12px;color:var(--ink2);align-self:center;text-align:right}
+  .cls.t-unknown{color:var(--rust);border:1px solid var(--rust);padding:3px 5px;
+                 border-radius:var(--r1)}
+
   /* Severity rail. Width encodes the band as well as colour, because colour
-     alone fails for colour-blind users - the same reason the threat tag
-     carries text rather than relying on its background. */
-  .sev{display:inline-flex;align-items:center;gap:5px;font-size:10px;
-       letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
-  .sev i{display:inline-block;height:9px;border-radius:2px;flex:none}
-  .sev-info i{width:4px;background:#4a5568}
-  .sev-low i{width:8px;background:#5b8fbe}
-  .sev-medium i{width:12px;background:#d0a343}
-  .sev-high i{width:16px;background:#e08a4a}
-  .sev-critical i{width:20px;background:#e0705a}
-  .sev-critical{color:#e0705a}
-  .sev-high{color:#e08a4a}
-  .kv{display:grid;grid-template-columns:132px 1fr;gap:4px 12px;
-      font-size:12.5px;margin-bottom:14px}
-  .kv dt{color:var(--ink3)}
-  .kv dd{margin:0;overflow-wrap:anywhere}
-  .hash{color:var(--accent);font-size:11.5px}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:5px;
-         padding:14px;margin-bottom:12px}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  td{padding:3px 6px;border-bottom:1px solid var(--line)}
-  td:last-child{text-align:right;color:var(--ink2)}
-  .verdict{padding:10px 12px;border-radius:4px;margin-bottom:12px;font-size:13px}
-  .verdict.ok{background:#12291d;border:1px solid var(--ok);color:var(--ok)}
-  .verdict.bad{background:#2d1713;border:1px solid var(--bad);color:var(--bad)}
-  .verdict.busy{background:var(--panel2);border:1px solid var(--line);color:var(--ink2)}
-  .verdict ul{margin:8px 0 0;padding-left:18px}
-  .verdict li{margin:2px 0;font-family:"Cascadia Mono",Consolas,monospace;
-              font-size:11.5px}
-  .agree{display:flex;gap:16px;margin-top:9px;font-size:11.5px;flex-wrap:wrap;
-         border-top:1px solid rgba(255,255,255,.09);padding-top:8px}
-  .agree span{color:var(--ink2)}
-  .agree b{color:var(--ok)}
-  .agree b.no{color:var(--bad)}
-  .empty{color:var(--ink3);font-size:13px;padding:20px 0}
-  .note{color:var(--ink3);font-size:11.5px;margin-top:8px}
-  .head{border-bottom:1px solid var(--line);padding:7px 0;font-size:12px}
-  .head:last-child{border-bottom:none}
-  .head b{color:var(--accent)}
-  .head small{color:var(--ink3);display:block}
-  .head small.gap{color:var(--warn)}
-  .tabs{display:flex;gap:4px;margin-left:22px;align-self:center}
-  .tab{background:none;border:1px solid transparent;color:var(--ink3);
-       padding:5px 13px;border-radius:4px;font:inherit;font-size:12.5px;cursor:pointer}
-  .tab:hover{color:var(--ink)}
-  .tab[aria-selected="true"]{background:var(--panel2);border-color:var(--line);
-       color:var(--accent);font-weight:600}
-  .findings{overflow:auto;padding:20px 24px;height:calc(100vh - 62px)}
-  .fig{max-width:1180px;margin:0 auto 30px}
-  .fig h3{margin:0 0 3px;font-size:14.5px;font-weight:600}
-  .fig p{margin:0 0 10px;color:var(--ink2);font-size:12.5px;max-width:900px}
-  .fig img{width:100%;height:auto;border:1px solid var(--line);border-radius:5px;
-           background:#fff}
-  .fig .n{color:var(--ink3);font-size:11px;letter-spacing:.09em;
-          text-transform:uppercase;font-weight:600}
+     alone fails for colour-blind users - the same reason the class carries
+     text rather than relying on a background. */
+  .sev{display:inline-flex;align-items:center;gap:6px;font:var(--fs-xs)/1 var(--mono);
+       text-transform:lowercase;color:var(--ink2)}
+  .sev i{display:inline-block;height:8px;border-radius:1px;flex:none}
+  .sev-info i{width:4px;background:var(--sev-info)}
+  .sev-low i{width:8px;background:var(--sev-low)}
+  .sev-medium i{width:12px;background:var(--sev-medium)}
+  .sev-high i{width:16px;background:var(--sev-high)}
+  .sev-critical i{width:20px;background:var(--sev-critical)}
+  .sev-high{color:var(--sev-high)}
+  .sev-critical{color:var(--sev-critical)}
+  .sev-none{color:var(--ink3)}
 
-  .skip{position:absolute;left:-9999px;top:0;background:var(--accent);
-        color:var(--bg);padding:9px 14px;border-radius:0 0 5px 0;z-index:50;
-        font-weight:600;font-size:13px}
-  .skip:focus{left:0}
-  .alert:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-
-  /* ------------------------------------------------------------- narrow */
-  /* At 320px the six stat blocks wrapped to six rows and the header took 331px
-     of a 700px viewport - half the screen before a single alert. They become
-     one horizontally-scrollable strip instead, which keeps every number
-     reachable without spending the fold on them. */
-  @media(max-width:700px){
-    header{padding:11px 14px;gap:9px}
-    header h1{font-size:15.5px}
-    header .sub{font-size:11px}
-    .stats{margin-left:0;width:100%;gap:15px;overflow-x:auto;flex-wrap:nowrap;
-           padding-bottom:2px;scrollbar-width:none}
-    .stats::-webkit-scrollbar{display:none}
-    .stat{flex:none}
-    .stat b{font-size:13.5px}
-    .stat span{font-size:9.5px;letter-spacing:.06em}
-    .tabs{margin-left:0}
-    .col{padding:13px 14px}
-    .findings{padding:16px 14px;height:auto}
-    .alert{grid-template-columns:54px 1fr auto;gap:8px}
-    .kv{grid-template-columns:92px 1fr;gap:3px 10px}
-    .agree{gap:8px}
-    .fig{margin-bottom:22px}
+  /* Two lines when the ledger itself is narrow - measured on the ledger, not
+     the viewport, so it holds in a squeezed desktop pane as well as on a phone. */
+  @container (max-width:640px){
+    .ledger-head{display:none}
+    .alert{grid-template-columns:7ch auto minmax(0,1fr) auto;
+           grid-template-areas:"seq cls host conf" "seq aid aid sev";
+           row-gap:3px;padding-left:var(--s4);padding-right:var(--s4)}
   }
-  /* Touch targets. 30px tab buttons are fine with a mouse and too small with a
-     thumb; WCAG asks for 44px, and only coarse pointers need to pay for it. */
+
+  /* =============================================================== evidence */
+  .evidence .scroll{flex:1;min-height:0;overflow:auto;padding:0 var(--s5) var(--s6)}
+  .empty{color:var(--ink3);padding:var(--s5) 0;max-width:52ch}
+  .empty b{color:var(--ink2);font-weight:600}
+  .note{color:var(--ink3);font-size:var(--fs-sm);margin:var(--s2) 0 0;max-width:72ch;
+        text-wrap:pretty}
+
+  .doc-head{padding:var(--s4) 0 var(--s3);border-bottom:1px solid var(--line)}
+  .doc-id{font-size:var(--fs-lg);color:var(--ink)}
+  .doc-line{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;margin-top:var(--s2);
+            color:var(--ink2);font-size:var(--fs-sm)}
+  .doc-line .sep{color:var(--line2)}
+  .sec{padding:var(--s4) 0;border-bottom:1px solid var(--line)}
+  .sec:last-child{border-bottom:0}
+  /* A step above the 12px text it heads, so sections separate by size and
+     not by weight alone. */
+  h3{margin:0 0 var(--s3);font-size:var(--fs-md);font-weight:600;color:var(--ink)}
+  h3 .aside{font-weight:400;color:var(--ink3);margin-left:var(--s2)}
+  .kv{display:grid;grid-template-columns:11ch 1fr;gap:var(--s1) var(--s4);margin:0;
+      font-size:var(--fs-sm)}
+  .kv dt{color:var(--ink3)}
+  .kv dd{margin:0;overflow-wrap:anywhere;color:var(--ink)}
+  .hash{color:var(--ink2);font-size:var(--fs-sm)}
+  .path{margin:0;color:var(--ink2);font-size:var(--fs-sm)}
+  table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+  td{padding:5px 0;border-bottom:1px solid var(--line)}
+  tr:last-child td{border-bottom:0}
+  td.num{text-align:right;color:var(--ink2)}
+
+  .verdict{margin:0 0 var(--s2);padding:var(--s3) var(--s4);border-radius:var(--r2);
+           font-size:var(--fs-md)}
+  .verdict b{font:700 var(--fs-sm)/1 var(--mono);letter-spacing:.06em;margin-right:var(--s1)}
+  .verdict.ok{background:var(--teal-fill);border:1px solid var(--teal-dim)}
+  .verdict.ok b{color:var(--teal)}
+  .verdict.bad{background:var(--rust-fill);border:1px solid #7A4032}
+  .verdict.bad b{color:var(--rust)}
+  .verdict.busy{background:var(--surface);border:1px solid var(--line);color:var(--ink2)}
+  .verdict ul{margin:var(--s2) 0 0;padding-left:var(--s4);color:var(--rust)}
+  .verdict li{margin:2px 0;font:var(--fs-sm)/1.5 var(--mono)}
+  .agree{display:flex;gap:var(--s4);flex-wrap:wrap;margin-top:var(--s3);padding-top:var(--s2);
+         border-top:1px solid rgba(231,236,234,.1);font-size:var(--fs-sm)}
+  .agree span{color:var(--ink2)}
+  .agree b{color:var(--teal);font:600 var(--fs-sm)/1 var(--sans);letter-spacing:0;margin:0}
+  .agree b.no{color:var(--rust)}
+
+  .heads{margin-top:var(--s2);border-top:1px solid var(--line)}
+  .ledger .empty{padding:var(--s5)}
+  .head{padding:var(--s2) 0;border-bottom:1px solid var(--line);font-size:var(--fs-sm)}
+  .head:last-child{border-bottom:0}
+  .head b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+  .head .arrow{color:var(--ink3)}
+  .head small{display:block;color:var(--ink3);font-size:var(--fs-sm);margin-top:2px}
+  .head small.gap{color:var(--amber)}
+
+  /* =============================================================== findings */
+  .findings{flex:1;min-height:0;overflow:auto;padding:var(--s5)}
+  .fig{max-width:1040px;margin:0 auto var(--s6)}
+  .fig .n{font:var(--fs-xs)/1 var(--mono);color:var(--ink3);letter-spacing:.04em}
+  .fig h3{margin:var(--s2) 0 var(--s1);font-size:var(--fs-lg);color:var(--ink)}
+  .fig p{margin:0 0 var(--s3);color:var(--ink2);max-width:72ch;text-wrap:pretty}
+  /* The figures are white matplotlib renders. Set straight on the dark page
+     they read as glare; on a light mat they read as exhibits. */
+  .mat{background:#E9EEEC;padding:var(--s3);border-radius:var(--r2)}
+  .mat img{display:block;width:100%;height:auto;background:#fff}
+
+  .skip{position:absolute;left:-9999px;top:0;z-index:50;background:var(--teal);
+        color:#0B1A18;padding:var(--s2) var(--s3);font-weight:600;border-radius:0 0 var(--r2) 0}
+  .skip:focus{left:0}
+
+  /* ================================================================ narrow */
+  /* Below 900px the panes stack. The ledger is bounded so the evidence sits
+     directly beneath it; before this, tapping an alert on a tablet updated a
+     panel 27 screens further down the page. */
+  @media (max-width:900px){
+    html,body{height:auto}
+    body{display:block}
+    main{display:block}
+    .col + .col{border-left:0;border-top:1px solid var(--line)}
+    .ledger{max-height:min(60vh,560px)}
+    .evidence .scroll{overflow:visible}
+    .findings{overflow:visible}
+  }
+  @media (max-width:700px){
+    header{padding:var(--s3) var(--s4) 0}
+    .brand h1{font-size:var(--fs-lg)}
+    .stats{margin-left:0;width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+    .stats::-webkit-scrollbar{display:none}
+    .group{flex:none;padding-left:var(--s4)}
+    .colhead{padding:var(--s3) var(--s4)}
+    /* The tab directly above already says "Alert stream". Kept for screen
+       readers, which navigate by heading. */
+    .stream h2{position:absolute;width:1px;height:1px;overflow:hidden;
+               clip:rect(0 0 0 0);white-space:nowrap}
+    .count{margin-left:0;width:100%}
+    .evidence .scroll{padding:0 var(--s4) var(--s5)}
+    .findings{padding:var(--s4)}
+    .mat{padding:var(--s2)}
+    .sim{border-left:0;padding-left:0}
+  }
+  /* Touch targets: 44px where the pointer is a thumb. */
   @media (pointer:coarse){
-    .tab,button,select{min-height:44px}
-    .alert{padding:11px 10px}
+    .tab,.btn,select{min-height:44px}
+    .alert{min-height:48px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;animation:none !important}
   }
 </style>
 </head>
 <body>
 <a class="skip" href="#list">Skip to alerts</a>
 <header>
-  <div>
-    <h1>EKAGRA <span style="color:var(--ink3);font-weight:400">· enclave console</span>
-      <span class="mode" id="mode">…</span></h1>
-    <div class="sub" id="sub">connecting…</div>
+  <div class="top">
+    <div class="brand">
+      <h1><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M5 7.5 21 16"/><path d="M5 16h16"/><path d="M5 24.5 21 16"/></g><circle cx="25" cy="16" r="4" fill="currentColor"/></svg><span class="word">EKAGRA</span> <span class="product">enclave console</span>
+        <span class="mode" id="mode">…</span></h1>
+      <div class="sub" id="sub">connecting…</div>
+    </div>
+    <div class="stats" id="stats"></div>
   </div>
   <div class="tabs" role="tablist">
     <button class="tab" id="tabOps" role="tab" aria-selected="true"
@@ -203,7 +359,6 @@
     <button class="tab" id="tabFind" role="tab" aria-selected="false"
             aria-controls="findings" tabindex="-1">Findings</button>
   </div>
-  <div class="stats" id="stats"></div>
 </header>
 
 <section class="findings" id="findings" role="tabpanel" aria-labelledby="tabFind" hidden>
@@ -211,33 +366,45 @@
 </section>
 
 <main id="ops" role="tabpanel" aria-labelledby="tabOps">
-  <section class="col">
-    <h2>Alert stream</h2>
-    <div class="bar">
-      <select id="fClass"><option value="">all classes</option></select>
-      <select id="fDecision">
+  <section class="col stream">
+    <div class="colhead">
+      <h2>Alert stream</h2>
+      <select id="fClass" aria-label="Filter by threat class"><option value="">all classes</option></select>
+      <select id="fDecision" aria-label="Filter by decision">
         <option value="">all decisions</option>
         <option value="ALERT">ALERT only</option>
         <option value="ABSTAIN">ABSTAIN only</option>
       </select>
-      <button id="replay" disabled title="stream this segment from the API as server-sent events">&#9654; Replay</button>
-      <span class="note" id="count" role="status" aria-live="polite"></span>
+      <button class="btn" id="replay" disabled title="stream this segment from the API as server-sent events">&#9654; Replay</button>
+      <span class="count" id="count" role="status" aria-live="polite"></span>
     </div>
-    <div id="list" aria-label="Alert stream"></div>
+    <div class="ledger">
+      <div class="ledger-head" aria-hidden="true">
+        <span class="seq">#</span><span>class</span><span>host</span><span>alert</span><span>severity</span><span class="r">conf.</span>
+      </div>
+      <div id="list" aria-label="Alert stream"></div>
+    </div>
   </section>
 
-  <section class="col">
-    <h2>Evidence</h2>
-    <div class="bar">
-      <button class="primary" id="verify">Verify chain</button>
-      <button class="danger" id="tamper">Tamper with selected</button>
-      <button id="reset">Reset</button>
+  <section class="col evidence" id="evidence">
+    <div class="colhead">
+      <h2>Evidence</h2>
+      <div class="actions">
+        <button class="btn primary" id="verify">Verify chain</button>
+        <div class="sim" role="group" aria-label="Tamper simulation">
+          <span class="sim-label">Simulate</span>
+          <button class="btn warn" id="tamper">Tamper with selected</button>
+          <button class="btn quiet" id="reset">Reset</button>
+        </div>
+      </div>
     </div>
-    <div id="verdict" role="status" aria-live="polite" aria-atomic="true"></div>
-    <div id="detail"><div class="empty">Select an alert to inspect its evidence bundle.</div></div>
-    <div class="panel" id="headsPanel" style="display:none">
-      <h2>Detector heads</h2>
-      <div id="heads"></div>
+    <div class="scroll">
+      <div id="verdict" role="status" aria-live="polite" aria-atomic="true"></div>
+      <div id="detail"><div class="empty">Select an alert in the stream to open its <b>evidence bundle</b> — what was observed, which model decided, and the hash that links it to the entry before.</div></div>
+      <div class="sec heads" id="headsPanel" hidden>
+        <h3>Detector heads</h3>
+        <div id="heads"></div>
+      </div>
     </div>
   </section>
 </main>
@@ -277,6 +444,13 @@ function esc(s){
   return String(s).replace(/[<>&"']/g, c =>
     ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;","'":"&#39;"}[c]));
 }
+// "1 flows" is the kind of slip that tells a reader nobody looked closely.
+function plural(n, word){ return Number(n) === 1 ? word : word + "s"; }
+/* One grouping, whatever the viewer's locale. Bare toLocaleString() showed
+   "4,71,631" on an en-IN machine and "471,631" elsewhere - an evidence
+   console should not render the same figure two ways. */
+function num(n){ return Number(n).toLocaleString("en-US"); }
+const EMPTY_DETAIL = `<div class="empty">Select an alert in the stream to open its <b>evidence bundle</b> — what was observed, which model decided, and the hash that links it to the entry before.</div>`;
 
 /* ------------------------------------------------------- input validation */
 /* Every bundle is normalised on arrival, before it can reach the DOM.
@@ -359,6 +533,13 @@ async function api(path, timeout = API_TIMEOUT_MS){
 
 async function boot(){
   try{
+    /* Opened straight off the disk, or published as a static site, there is no
+       API to ask. Chrome and Firefox fail the probe silently; Safari logs it as
+       an access-control error; a static host answers with its own 404 page and
+       the probe only fails after the 8s timeout. Take the snapshot path
+       directly rather than make a request that cannot work. */
+    if(location.protocol === "file:" || window.EKAGRA_STATIC)
+      throw new Error("no API to probe here");
     const health = await api("api/health");
     if(health.status !== "ok") throw new Error(health.detail || health.status);
     chain = await api("api/summary");
@@ -392,9 +573,9 @@ async function boot(){
 async function loadHeads(){
   try{
     const heads = await api("api/heads");
-    document.getElementById("headsPanel").style.display = "";
+    document.getElementById("headsPanel").hidden = false;
     document.getElementById("heads").innerHTML = heads.map(h =>
-      `<div class="head"><b>${esc(h.name)}</b> &rarr; ${esc(h.threat_class)}
+      `<div class="head"><b>${esc(h.name)}</b> <span class="arrow">&rarr;</span> ${esc(h.threat_class)}
         <small>${esc(h.rationale)}</small>
         ${h.known_gap ? `<small class="gap">known gap: ${esc(h.known_gap)}</small>` : ""}
       </div>`).join("");
@@ -444,6 +625,8 @@ async function doVerify(){
   v.innerHTML = `<div class="verdict busy">re-deriving ${bundles.length} entries in the browser…</div>`;
   const problems = await verifyChain();
   const clientOk = problems.length === 0;
+  // The rail in the ledger now shows the verifier's per-link result.
+  document.getElementById("list").dataset.chain = "verified";
 
   /* Ask the server independently. Two implementations in two languages
      agreeing is a stronger statement than either one alone. */
@@ -462,7 +645,7 @@ async function doVerify(){
         : "";
       agreeLine = `<div class="agree">
         <span>browser, this segment: <b class="${clientOk?"":"no"}">${clientOk?"intact":"broken"}</b></span>
-        <span>server, whole log (${sv.entries.toLocaleString()}): <b class="${sv.verified?"":"no"}">${sv.verified?"intact":"broken"}</b></span>
+        <span>server, whole log (${num(sv.entries)}): <b class="${sv.verified?"":"no"}">${sv.verified?"intact":"broken"}</b></span>
         <span>independent implementations <b class="${sv.verified===clientOk?"":"no"}">${sv.verified===clientOk?"agree":"disagree"}</b></span>
       </div>${why}`;
     }catch(e){
@@ -471,11 +654,11 @@ async function doVerify(){
   }
 
   v.innerHTML = problems.length
-    ? `<div class="verdict bad"><b>SEGMENT BROKEN</b> — ${problems.length} problem(s) found by independent re-derivation.
+    ? `<div class="verdict bad"><b>SEGMENT BROKEN</b> ${problems.length} ${problems.length === 1 ? "problem" : "problems"} found by independent re-derivation.
          <ul>${problems.slice(0,8).map(p => `<li>${esc(p)}</li>`).join("")}</ul>
          ${problems.length>8 ? `<div class="note">…and ${problems.length-8} more</div>` : ""}
          ${agreeLine}</div>`
-    : `<div class="verdict ok"><b>SEGMENT INTACT</b> — ${bundles.length} entries re-hashed and re-linked here in the browser.
+    : `<div class="verdict ok"><b>SEGMENT INTACT</b> ${bundles.length} entries re-hashed and re-linked here in the browser.
          <div class="note">anchor ${bundles.length?bundles[0].prev_hash.slice(0,16):"—"}… → head ${bundles.length?bundles[bundles.length-1].entry_hash.slice(0,16):"—"}…  ·  the anchor must be checked against an independently held digest</div>
          ${agreeLine}</div>`;
   renderList();
@@ -486,7 +669,7 @@ function renderHeader(){
   const m = document.getElementById("mode");
   const sub = document.getElementById("sub");
   m.className = "mode " + (MODE === "live" ? "live" : MODE === "offline" ? "offline" : "none");
-  m.textContent = MODE === "live" ? "live" : MODE === "offline" ? "offline snapshot" : "no data";
+  m.textContent = MODE === "live" ? "Live" : MODE === "offline" ? "Offline snapshot" : "No data";
 
   if(MODE === "none"){
     sub.textContent = "no API and no data.js — run  python demo.py  from the ekagra folder";
@@ -495,22 +678,36 @@ function renderHeader(){
   const s = D ? D.sensor : null;
   const provenance = MODE === "live"
     ? "served by the enclave API"
-    : "static data.js snapshot · run  python demo.py  for live mode";
+    : window.EKAGRA_STATIC
+      ? "published snapshot of a real run · the sensor itself runs inside an enclave"
+      : "static data.js snapshot · run  python demo.py  for live mode";
   sub.textContent = s
     ? `${provenance} · window ${s.window_s}s + ${s.lateness_s}s lateness = ${s.latency_s}s latency · read-only ingest`
     : `${provenance} · read-only ingest`;
+  /* Assigning textContent above clears any previous link, so this cannot
+     accumulate across re-renders. */
+  if(window.EKAGRA_REPORT_URL){
+    const a = document.createElement("a");
+    a.className = "reportlink";
+    a.href = window.EKAGRA_REPORT_URL;
+    a.textContent = "project report";
+    sub.append(" · ", a);
+  }
 
   const c = D ? D.calibration : null;
-  const cells = [
-    ["chain entries", (chain && chain.entries != null ? chain.entries : bundles.length).toLocaleString()],
-    s && ["packets observed", s.packets_observed.toLocaleString()],
-    s && ["throughput", s.packets_per_s.toLocaleString() + " pkt/s"],
-    chain && chain.alerts != null && ["alerts", chain.alerts.toLocaleString()],
-    c && ["abstention", (100*c.abstention_rate).toFixed(1) + "%"],
-    c && ["coverage", c.empirical_coverage.toFixed(3)],
-  ].filter(Boolean);
-  document.getElementById("stats").innerHTML = cells.map(([k,v]) =>
-    `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
+  /* Grouped by what each number describes - the sensor, the chain, the
+     calibration - rather than six equal tiles with no relationship shown. */
+  const groups = [
+    [s && ["packets observed", num(s.packets_observed)],
+     s && ["throughput", num(s.packets_per_s) + " pkt/s"]],
+    [["chain entries", num(chain && chain.entries != null ? chain.entries : bundles.length)],
+     chain && chain.alerts != null && ["alerts", num(chain.alerts)]],
+    [c && ["abstention", (100*c.abstention_rate).toFixed(1) + "%"],
+     c && ["coverage", c.empirical_coverage.toFixed(3)]],
+  ].map(g => g.filter(Boolean)).filter(g => g.length);
+  document.getElementById("stats").innerHTML = groups.map(g =>
+    `<div class="group">${g.map(([k,v]) =>
+      `<div class="stat"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>`).join("");
 }
 
 function passes(b){
@@ -521,21 +718,26 @@ function passes(b){
 function updateCount(){
   const total = chain && chain.entries != null ? chain.entries : bundles.length;
   document.getElementById("count").textContent =
-    `${shown} shown · newest ${bundles.length} of ${total.toLocaleString()} logged`;
+    `${shown} shown · newest ${bundles.length} of ${num(total)} logged`;
 }
 function rowHTML(b, fresh){
   const abst = b.decision === "ABSTAIN";
   const cls = abst ? "t-abstain" : "t-" + b.css_class;
   const label = `${abst ? "abstain" : b.threat_class}, host ${b.host}, `
               + `${abst ? "" : `severity ${b.severity}, `}`
-              + `confidence ${(100*b.confidence).toFixed(0)} percent, sequence ${b.seq}`;
+              + `confidence ${(100*b.confidence).toFixed(0)} percent, window ${b.window}, sequence ${b.seq}`;
+  /* One ruled line per entry, columns fixed, so the ledger reads down its
+     columns. The window is not repeated per row - the alert id encodes it
+     (EK-00059 is window 59) and the evidence pane states it. */
   return `<div class="alert ${selected===b.seq?"sel":""} ${broken.has(b.seq)?"broken":""} ${fresh===b.seq?"fresh":""}"
        data-seq="${esc(b.seq)}" role="button" tabindex="0"
        aria-pressed="${selected===b.seq}" aria-label="${esc(label)}">
-    <span class="tag ${cls}">${abst ? "abstain" : esc(b.threat_class)}</span>
-    <span class="who">${esc(b.host)}<small class="mono">${esc(b.alert_id)} · window ${esc(b.window)}</small>
-      ${abst ? "" : `<span class="sev sev-${esc(b.severity)}"><i></i>${esc(b.severity)}</span>`}</span>
-    <span class="conf">${(100*b.confidence).toFixed(1)}%<br><small class="mono" style="color:var(--ink3)">#${esc(b.seq)}</small></span>
+    <span class="seq">${esc(b.seq)}</span>
+    <span class="cls ${cls}">${abst ? "abstain" : esc(b.threat_class)}</span>
+    <span class="host">${esc(b.host)}</span>
+    <span class="aid">${esc(b.alert_id)}</span>
+    ${abst ? `<span class="sev sev-none">—</span>` : `<span class="sev sev-${esc(b.severity)}"><i></i>${esc(b.severity)}</span>`}
+    <span class="conf">${(100*b.confidence).toFixed(1)}%</span>
   </div>`;
 }
 function renderList(fresh){
@@ -564,7 +766,7 @@ function appendRow(raw){
 async function renderDetail(){
   const host = document.getElementById("detail");
   const b = bundles.find(x => x.seq === selected);
-  if(!b){ host.innerHTML = `<div class="empty">Select an alert to inspect its evidence bundle.</div>`; return; }
+  if(!b){ host.innerHTML = EMPTY_DETAIL; return; }
 
   /* The list view omits feature vectors - hundreds of KB per page for no
      benefit. Fetch the full bundle on demand in live mode. */
@@ -579,46 +781,56 @@ async function renderDetail(){
   // class - so on those rows the figure is conditional and says so here, and is
   // hidden from the list entirely rather than reading as a triage priority.
   const abstainNote = abst
-    ? " This alert ABSTAINED, so the class is not asserted and this figure is "
-      + "conditional - it is hidden in the list for that reason."
+    ? " This alert ABSTAINED, so the class is not asserted and the severity is "
+      + "conditional - which is why the ledger hides it for this row."
     : "";
   const feats = Object.entries(b.features || {})
     .filter(([,v]) => v !== 0)
     .sort((a,c) => Math.abs(c[1]) - Math.abs(a[1])).slice(0, 14);
   host.innerHTML = `
-    <div class="panel">
+    <div class="doc-head">
+      <div class="doc-id mono">${esc(b.alert_id)}</div>
+      <div class="doc-line">
+        <span class="cls ${abst ? "t-abstain" : "t-" + esc(b.css_class)}">${abst ? "abstain" : esc(b.threat_class)}</span>
+        <span>${esc(b.decision)}</span><span class="sep">/</span>
+        <span class="mono">${(100*b.confidence).toFixed(1)}% confidence</span><span class="sep">/</span>
+        <span class="mono">seq ${esc(b.seq)}</span>
+      </div>
+    </div>
+    <div class="sec">
+      <h3>Assessment</h3>
       <dl class="kv">
-        <dt>alert</dt><dd class="mono">${esc(b.alert_id)}</dd>
-        <dt>decision</dt><dd><b>${esc(b.decision)}</b> · ${esc(b.threat_class)} · confidence ${(100*b.confidence).toFixed(2)}%</dd>
         <dt>severity</dt><dd><span class="sev sev-${esc(b.severity)}"><i></i>${esc(b.severity)}</span>
-          <small style="color:var(--ink3)"> — impact if the class is correct
-          (${b.severity_score.toFixed(2)}). Independent of confidence: a
-          low-confidence exfiltration outranks a certain port scan.${esc(abstainNote)}</small></dd>
-        <dt>observed</dt><dd>window ${esc(b.window)} · host ${esc(b.host)} · ${esc(obs.flows_in_window ?? "?")} flows · ${esc(obs.peers ?? "?")} peers</dd>
+          <span class="mono hash">&nbsp;${b.severity_score.toFixed(2)}</span></dd>
+        <dt>observed</dt><dd>window&nbsp;${esc(b.window)} · host <span class="mono">${esc(b.host)}</span> · ${esc(obs.flows_in_window ?? "?")}&nbsp;${esc(plural(obs.flows_in_window, "flow"))} · ${esc(obs.peers ?? "?")}&nbsp;${esc(plural(obs.peers, "peer"))}</dd>
         <dt>ground truth</dt><dd>${esc(obs.true_label ?? "n/a")}</dd>
       </dl>
-      <h2>Chain of custody</h2>
+      <p class="note">Severity is the impact if the class is correct, independent of
+      confidence: a low-confidence exfiltration outranks a certain port scan.${esc(abstainNote)}</p>
+    </div>
+    <div class="sec">
+      <h3>Chain of custody</h3>
       <dl class="kv">
         <dt>sequence</dt><dd class="mono">#${esc(b.seq)}</dd>
         <dt>prev hash</dt><dd class="mono hash">${esc(b.prev_hash)}</dd>
         <dt>entry hash</dt><dd class="mono hash">${esc(b.entry_hash)}</dd>
-        <dt>HMAC</dt><dd class="mono" style="color:var(--ink2)">${b.hmac ? esc(b.hmac) : "—"}</dd>
-        <dt>model</dt><dd class="mono" style="color:var(--ink2)">${esc(b.model_hash.slice(0,32))}…</dd>
-        <dt>features</dt><dd class="mono" style="color:var(--ink2)">${esc(b.feature_hash.slice(0,32))}…</dd>
+        <dt>HMAC</dt><dd class="mono hash">${b.hmac ? esc(b.hmac) : "—"}</dd>
+        <dt>model</dt><dd class="mono hash">${esc(b.model_hash.slice(0,32))}…</dd>
+        <dt>features</dt><dd class="mono hash">${esc(b.feature_hash.slice(0,32))}…</dd>
       </dl>
       <p class="note">The HMAC is shown, not verified here: its key stays in the enclave.
       The browser can only re-derive the hash chain, which is integrity — not authorship.</p>
     </div>
-    <div class="panel">
-      <h2>Decision path</h2>
-      <div class="mono" style="font-size:12px;color:var(--ink2)">${(b.decision_path||[]).map(esc).join(" → ") || "—"}</div>
+    <div class="sec">
+      <h3>Decision path</h3>
+      <p class="path mono">${(b.decision_path||[]).map(esc).join(" → ") || "—"}</p>
     </div>
-    <div class="panel">
-      <h2>Feature vector${feats.length ? " (non-zero, top 14 by magnitude)" : ""}</h2>
+    <div class="sec">
+      <h3>Feature vector${feats.length ? `<span class="aside">non-zero, top 14 by magnitude</span>` : ""}</h3>
       ${feats.length
         ? `<table>${feats.map(([k,v]) =>
-            `<tr><td class="mono">${esc(k)}</td><td class="mono">${Number(v).toFixed(3)}</td></tr>`).join("")}</table>`
-        : `<div class="note">not available for this entry</div>`}
+            `<tr><td class="mono">${esc(k)}</td><td class="mono num">${Number(v).toFixed(3)}</td></tr>`).join("")}</table>`
+        : `<p class="note">not available for this entry</p>`}
     </div>`;
 }
 
@@ -634,12 +846,13 @@ function startReplay(){
   if(es){ stopReplay(); return; }
   const start = Math.max(0, chain.entries - SEGMENT);
   bundles = []; selected = null; broken = new Set();
+  delete document.getElementById("list").dataset.chain;
   document.getElementById("verdict").innerHTML =
     `<div class="verdict busy">streaming from /events…</div>`;
   renderDetail(); renderList();
   document.getElementById("replay").innerHTML = "&#9632; Stop";
   es = new EventSource("events?start=" + start + "&limit=" + SEGMENT);
-  const scroller = document.getElementById("list").closest(".col");
+  const scroller = document.querySelector(".ledger");
   es.addEventListener("alert", ev => {
     appendRow(JSON.parse(ev.data));
     scroller.scrollTop = scroller.scrollHeight;
@@ -678,7 +891,7 @@ async function loadFigures(){
         <div class="n">Figure ${i + 1}</div>
         <h3>${esc(f.title)}</h3>
         <p>${esc(f.claim)}</p>
-        <img src="figures/${encodeURIComponent(f.file)}" alt="${esc(f.title)}" loading="lazy">
+        <div class="mat"><img src="figures/${encodeURIComponent(f.file)}" alt="${esc(f.title)}" loading="lazy"></div>
       </div>`).join("");
     }
     figsLoaded = true;
@@ -723,6 +936,14 @@ function selectRow(row){
   row.classList.add("sel");
   row.setAttribute("aria-pressed", "true");
   renderDetail();
+  /* Stacked layout: the evidence is below the ledger. Before this, tapping an
+     alert on a tablet changed a panel 27 screens down and nothing visibly
+     happened. */
+  if(matchMedia("(max-width: 900px)").matches){
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.getElementById("evidence").scrollIntoView(
+      {behavior: still ? "auto" : "smooth", block: "start"});
+  }
 }
 const listEl = document.getElementById("list");
 listEl.addEventListener("click", ev => {
@@ -747,6 +968,7 @@ document.getElementById("verify").onclick = doVerify;
 document.getElementById("replay").onclick = startReplay;
 document.getElementById("reset").onclick = () => {
   bundles = JSON.parse(pristine); broken = new Set();
+  delete listEl.dataset.chain;
   document.getElementById("verdict").innerHTML = "";
   renderList(); renderDetail();
 };
