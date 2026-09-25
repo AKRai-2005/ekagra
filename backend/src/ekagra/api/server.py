@@ -32,11 +32,14 @@ would imply a guarantee this does not provide. Stated rather than omitted.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import (
+    FileResponse, HTMLResponse, Response, StreamingResponse,
+)
 
 from ..detect.heads import ALL_HEADS
 from ..evidence.bundle import EvidenceLog
@@ -211,19 +214,42 @@ def create_app(log_path: Path = DEFAULT_LOG, key: bytes = b"",
             raise HTTPException(status_code=404, detail=f"{name} not generated yet")
         return FileResponse(path, media_type="image/png")
 
+    # The console's own files must be revalidated on every load. Sent with only
+    # an ETag and Last-Modified, a browser applies heuristic freshness - for a
+    # file last changed weeks ago that can mean days - and keeps showing a
+    # stale console after an update, silently. `no-cache` still caches; it
+    # just asks first.
+    NO_CACHE = {"Cache-Control": "no-cache"}
+
+    def revalidated(path: Path, request: Request, media_type=None):
+        """Serve `path`, or a bodiless 304 if the browser's copy is current.
+
+        FileResponse does not honour If-None-Match on its own, so without this
+        `no-cache` would re-send data.js (~500 KB) on every load. Given a
+        stat_result it computes the ETag up front, so the comparison uses
+        Starlette's own tag rather than a second implementation of it.
+        """
+        resp = FileResponse(path, media_type=media_type, headers=NO_CACHE,
+                            stat_result=os.stat(path))
+        etag = resp.headers.get("etag", "")
+        sent = [t.strip() for t in request.headers.get("if-none-match", "").split(",")]
+        if etag and ("*" in sent or etag in sent or "W/" + etag in sent):
+            return Response(status_code=304, headers={"ETag": etag, **NO_CACHE})
+        return resp
+
     @app.get("/", response_class=HTMLResponse)
-    def console():
+    def console(request: Request):
         index = Path(console_dir) / "index.html"
         if not index.exists():
             return HTMLResponse("<h1>frontend/index.html not found</h1>", status_code=404)
-        return FileResponse(index)
+        return revalidated(index, request)
 
     @app.get("/data.js")
-    def console_data():
+    def console_data(request: Request):
         f = Path(console_dir) / "data.js"
         if not f.exists():
             raise HTTPException(status_code=404, detail="data.js not generated yet")
-        return FileResponse(f, media_type="application/javascript")
+        return revalidated(f, request, media_type="application/javascript")
 
     app.state.store = store
     return app

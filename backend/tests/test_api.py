@@ -61,16 +61,17 @@ class _AsgiClient:
     def __init__(self, app):
         self.app = app
 
-    def get(self, path, params=None):
-        return asyncio.run(self._call(path, params))
+    def get(self, path, params=None, headers=None):
+        return asyncio.run(self._call(path, params, headers))
 
-    async def _call(self, path, params):
+    async def _call(self, path, params, headers=None):
         scope = {
             "type": "http", "asgi": {"version": "3.0", "spec_version": "2.3"},
             "http_version": "1.1", "method": "GET", "scheme": "http",
             "path": path, "raw_path": path.encode(), "root_path": "",
             "query_string": urlencode(params or {}).encode(),
-            "headers": [(b"host", b"enclave.test")],
+            "headers": [(b"host", b"enclave.test")] + [
+                (k.lower().encode(), v.encode()) for k, v in (headers or {}).items()],
             "client": ("test", 1), "server": ("enclave.test", 80),
         }
         messages = []
@@ -313,3 +314,37 @@ def test_undeclared_names_are_refused(client, name):
     r = client.get("/figures/" + name)
     assert r.status_code in (404, 400), f"{name!r} was not refused"
     assert b"PNG" not in r.content[:8]
+
+
+def test_console_files_are_revalidated_not_heuristically_cached(log_file, tmp_path):
+    """BUG THIS PINS: index.html and data.js went out with an ETag but no
+    Cache-Control, so browsers applied heuristic freshness and kept showing a
+    stale console after it was updated - found when a redesigned console would
+    not appear until a hard refresh. A console whose premise is that what runs
+    in the enclave is what is in the repository cannot serve yesterday's copy."""
+    (tmp_path / "index.html").write_text("<!doctype html><title>t</title>")
+    (tmp_path / "data.js").write_text("window.EKAGRA_DATA = {};")
+    c = TestClient(create_app(log_path=log_file, key=b"k", console_dir=tmp_path))
+    for path in ("/", "/data.js"):
+        r = c.get(path)
+        assert r.status_code == 200, path
+        assert "no-cache" in r.headers.get("cache-control", ""), \
+            f"{path} would be heuristically cached"
+
+
+def test_unchanged_console_files_answer_304(log_file, tmp_path):
+    """`no-cache` means "ask first", so asking must be cheap. FileResponse does
+    not honour If-None-Match itself, and without this every load re-sent
+    data.js in full - the fix above would have traded staleness for waste."""
+    (tmp_path / "index.html").write_text("<!doctype html><title>t</title>")
+    (tmp_path / "data.js").write_text("window.EKAGRA_DATA = {};")
+    c = TestClient(create_app(log_path=log_file, key=b"k", console_dir=tmp_path))
+    for path in ("/", "/data.js"):
+        first = c.get(path)
+        tag = first.headers["etag"]
+        again = c.get(path, headers={"If-None-Match": tag})
+        assert again.status_code == 304, path
+        assert again.content == b"", f"{path} sent a body with its 304"
+        assert "no-cache" in again.headers.get("cache-control", "")
+        stale = c.get(path, headers={"If-None-Match": '"not-the-current-tag"'})
+        assert stale.status_code == 200 and stale.content == first.content, path
