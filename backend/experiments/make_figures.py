@@ -65,7 +65,9 @@ def main() -> None:
                  color=colors[i] if i else MUTED)
 
     drop = vals[1] - vals[0]
-    ax1.annotate("", xy=(1, vals[1] + 0.03), xytext=(1, vals[0] - 0.01),
+    # The head stops above the value label; at +0.03 it landed on the "7" of
+    # the label drawn at +0.018.
+    ax1.annotate("", xy=(1, vals[1] + 0.085), xytext=(1, vals[0] - 0.01),
                  arrowprops=dict(arrowstyle="->", color=RUST, lw=1.6))
     ax1.text(1.08, (vals[0] + vals[1]) / 2, f"{drop:+.2f}\nmacro-F1",
              color=RUST, fontsize=10, fontweight="bold", va="center")
@@ -97,11 +99,16 @@ def main() -> None:
 
     ax2.set_xticks(list(x))
     ax2.set_xticklabels(classes, fontsize=9.5)
-    ax2.set_ylim(0, 1.13)
+    # Headroom for a single-row legend above the bars. At loc="lower left" it
+    # sat inside the ddos and beacon bars and hid them - the same fault
+    # make_figures_pipeline.py fixes the same way.
+    ax2.set_ylim(0, 1.24)
+    ax2.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
     ax2.set_ylabel("per-class F1", fontsize=10)
     ax2.set_title("Which threat classes lose the reverse channel",
                   fontweight="bold", loc="left", pad=12)
-    ax2.legend(frameon=False, fontsize=9, ncol=1, loc="lower left")
+    ax2.legend(frameon=False, fontsize=9, ncol=3, loc="upper left",
+               handlelength=1.2, columnspacing=1.4)
     ax2.grid(axis="y", color="#E3E8E6", lw=0.8)
     ax2.set_axisbelow(True)
 
