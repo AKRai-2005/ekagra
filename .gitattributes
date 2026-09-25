@@ -1,0 +1,11 @@
+# Binary assets must never be line-ending converted.
+*.pdf binary
+*.png binary
+*.pcapng binary
+
+# Served as text; normalised to LF in the repository.
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.py text eol=lf
+*.md text eol=lf
