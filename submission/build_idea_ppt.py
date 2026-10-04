@@ -20,6 +20,7 @@ from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
 
 from deckkit import (
+    add_qr,
     GREY, INK, MUTED, PALE, WHITE,
     add_bar_chart, add_box, add_compare, add_flow, add_label, add_stat,
     by_name, find, prepare, set_body, set_single_run,
@@ -117,8 +118,9 @@ def build() -> None:
     # ---------------------------------------------------------------- slide 3
     body = by_name(s3, "TextBox")
     set_body(body, [
-        ("Stack  -  Python 3.12, XGBoost, NumPy/Pandas, PyTorch, pytest. "
-         "No external service in the detection path, by design.", "b"),
+        ("Stack  -  Python 3.12, XGBoost, scikit-learn, NumPy/Pandas, SciPy, "
+         "cryptography, pytest. No neural network and no external service in "
+         "the detection path, by design.", "b"),
     ], accent=TEAL, size=12, gap=4, left=0.67, top=1.30, width=12.0, height=0.55)
 
     stages = [
@@ -258,12 +260,24 @@ def build() -> None:
     # ---------------------------------------------------------------- slide 6
     body = by_name(s6, "TextBox")
     set_body(body, [
-        ("Datasets", "h"),
+        ("Datasets  -  addresses printed below, and scannable at the foot of this slide", "h"),
         ("Huang, Bois & Marchioro - Corrected CICFlowMeter Datasets: CIC-IDS 2017. "
-         "Zenodo 22016274 (CC-BY-4.0). Chosen over the original CSVs, which have "
-         "documented label and feature-extractor defects.", "b"),
+         "Zenodo 22016274 (CC-BY-4.0). 877,801 flows, the corpus every measured "
+         "number on these slides comes from. Chosen over the original CSVs, which "
+         "have documented label and feature-extractor defects.", "b",
+         ("zenodo.org/records/22016274", "https://zenodo.org/records/22016274")),
+        ("Source corpus it re-extracts - CIC-IDS2017, Canadian Institute for "
+         "Cybersecurity, University of New Brunswick.", "b",
+         ("unb.ca/cic/datasets/ids-2017.html",
+          "https://www.unb.ca/cic/datasets/ids-2017.html")),
         ("Engelen, Rimmer & Joosen - Troubleshooting an Intrusion Detection Dataset: "
-         "the CICIDS2017 case study. IEEE S&P Workshops, 2021.", "b"),
+         "the CICIDS2017 case study. IEEE S&P Workshops, 2021. Why we use the "
+         "corrected re-extraction.", "b",
+         ("doi.org/10.1109/SPW53761.2021.00009",
+          "https://doi.org/10.1109/SPW53761.2021.00009")),
+        ("Our own capture - 147 MB, 6 minutes of ordinary browsing, 148,416 packets. "
+         "Not redistributable (personal traffic); the TLS, JA4 and QUIC findings "
+         "come from it and reproduce on any capture.", "b"),
         ("Method and prior art", "h"),
         ("Network Intrusion Datasets: A Survey, Limitations and Recommendations - "
          "arXiv:2502.06688.", "b"),
@@ -277,9 +291,30 @@ def build() -> None:
          "audits in 2024-25. MarketsandMarkets: NDR $3.68B (2025) to $5.82B (2030); "
          "data-diode and unidirectional-gateway market $0.56B (2026) to $0.77B (2031).", "b"),
         ("Our work", "h"),
-        ("Repository with all experiments, pre-registered predictions and verdicts, and "
-         "one-command reproduction: [REPO URL]", "b"),
-    ], accent=TEAL, size=11.5, gap=4, left=0.67, top=1.30, width=12.0, height=5.4)
+        ("Repository with all experiments, pre-registered predictions and verdicts, "
+         "and one-command reproduction:", "b",
+         ("github.com/AKRai-2005/ekagra", "https://github.com/AKRai-2005/ekagra")),
+    ], accent=TEAL, size=11.5, gap=2.5, left=0.67, top=1.30, width=12.0, height=4.45)
+
+    # Scan strip: the datasets reachable from a phone, whatever machine, file
+    # format or printout this deck is opened on.
+    scans = [
+        ("Corrected CIC-IDS2017 (the one we used)", "zenodo.org/records/22016274",
+         "https://zenodo.org/records/22016274"),
+        ("Original CIC-IDS2017 (UNB CIC)", "unb.ca/cic/datasets/ids-2017.html",
+         "https://www.unb.ca/cic/datasets/ids-2017.html"),
+        ("Why the corrected one (Engelen 2021)", "doi.org/10.1109/SPW53761.2021.00009",
+         "https://doi.org/10.1109/SPW53761.2021.00009"),
+    ]
+    add_box(s6, 0.67, 5.84, 12.0, 1.05, "", fill=RGBColor(0xF4, 0xF7, 0xF6))
+    add_label(s6, 0.80, 5.87, 6.0, 0.20,
+              "SCAN OR TYPE  -  the datasets, reachable from any device", size=8,
+              bold=True, color=TEAL)
+    for i, (title, shown, url) in enumerate(scans):
+        cx = 0.80 + i * 3.95
+        add_qr(s6, cx, 6.06, 0.78, url, cache_dir=HERE / "assets", accent=TEAL)
+        add_label(s6, cx + 0.88, 6.10, 3.0, 0.22, title, size=9, bold=True, color=INK)
+        add_label(s6, cx + 0.88, 6.34, 3.0, 0.40, shown, size=8, color=MUTED)
 
     prs.save(str(OUT))
     print(f"wrote {OUT}")

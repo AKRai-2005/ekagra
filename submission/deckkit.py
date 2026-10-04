@@ -8,6 +8,8 @@ its `<a:br/>` cleanup (a leftover line break renders as a stray blank line).
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
@@ -98,7 +100,12 @@ def set_body(shape, blocks, *, accent, size=14, gap=6,
     for r in list(first.runs):
         r._r.getparent().remove(r._r)
 
-    for i, (text, style) in enumerate(blocks):
+    for i, block in enumerate(blocks):
+        text, style = block[0], block[1]
+        # A third element is (display text, url): it becomes a clickable run at
+        # the end of the block, so a judge reading the PDF sees the address and
+        # a judge reading the deck on screen can click it.
+        link = block[2] if len(block) > 2 else None
         para = first if i == 0 else tf.add_paragraph()
         para.alignment = PP_ALIGN.LEFT
         para.space_after = Pt(gap if style != "h" else gap + 2)
@@ -119,6 +126,41 @@ def set_body(shape, blocks, *, accent, size=14, gap=6,
             f.size, f.bold, f.color.rgb = Pt(size - 2), False, MUTED
         else:
             f.size, f.bold, f.color.rgb = Pt(size), False, INK
+
+        if link:
+            label, url = link
+            tail = para.add_run()
+            tail.text = "  " + label
+            tail.hyperlink.address = url
+            tf_ = tail.font
+            tf_.name = "Calibri"
+            tf_.size, tf_.bold, tf_.underline = Pt(size - 1), False, True
+            tf_.color.rgb = accent
+
+
+def add_qr(slide, x, y, side, url, *, cache_dir, accent=INK):
+    """Place a QR code for `url`, so the address can be reached from a phone.
+
+    A judge may open the deck on another laptop, as a PDF, or on paper, and a
+    hyperlink only survives the first two of those - and only when the PDF was
+    exported rather than printed. A QR code survives all of them.
+
+    Error level M rather than H: H adds modules, and fewer, larger modules scan
+    more reliably off a laptop screen, which is where this will be read. Both
+    levels decode at the size used here, tested at 150 dpi.
+    """
+    import hashlib
+
+    import segno
+
+    cache_dir = Path(cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    png = cache_dir / ("qr_" + hashlib.sha256(url.encode()).hexdigest()[:12] + ".png")
+    if not png.exists():
+        segno.make(url, error="m").save(str(png), scale=20, border=2,
+                                        dark="#0B2B28", light="#FFFFFF")
+    slide.shapes.add_picture(str(png), Inches(x), Inches(y), Inches(side), Inches(side))
+    return png
 
 
 def add_box(slide, x, y, w, h, text, *, size=11, bold=False, color=INK,
