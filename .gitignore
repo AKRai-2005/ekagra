@@ -25,3 +25,6 @@ Thumbs.db
 desktop.ini
 .idea/
 .vscode/
+
+# ---------------------------------------- submission binaries (see submission/build_idea_ppt.py)
+*.pptx

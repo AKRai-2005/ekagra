@@ -8,6 +8,13 @@ Constraints taken from the official template's own instruction slide:
 
 Every number in this deck is reproducible from the repository in this folder.
 Nothing is claimed here that the experiments did not survive.
+
+The PowerPoint files are deliberately not in this repository - neither the
+deck this script builds nor the official template it builds from. The deck
+is submitted through the SIH portal, and the template is SIH's document to
+distribute, not ours. To rebuild: download the official SIH 2026 idea
+template, save it beside this script as SIH2026-template.pptx, and run this
+file. Everything the deck asserts is reproducible from the experiments here.
 """
 
 from __future__ import annotations
