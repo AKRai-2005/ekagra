@@ -104,6 +104,7 @@ from ekagra.ingest.visibility import (  # noqa: E402
     DIODE_FULL, DIODE_ONEWAY, DIODE_ONEWAY_SAMPLED, LADDER,
     VisibilityFilter,
 )
+from ekagra.provenance import environment, stamped  # noqa: E402
 
 RESULTS = ROOT / "results"
 RESULTS.mkdir(exist_ok=True)
@@ -291,7 +292,8 @@ def main() -> None:
               f"({v['drop']:+.3f}), recovered to {v['retrained']:.3f}")
 
     (RESULTS / "exp01_verdicts.json").write_text(json.dumps(
-        {"macro_f1_full": f1_A,
+        {
+        "environment": environment(),"macro_f1_full": f1_A,
          "predictions_were_registered_before_running": True,
          "verdicts": verdicts,
          "enrichment_rung_cost": enrich_drop,

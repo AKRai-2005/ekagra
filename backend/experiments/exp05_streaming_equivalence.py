@@ -66,6 +66,7 @@ from ekagra.features.streaming_host_window import (  # noqa: E402
     FlowRecord, StreamingHostWindow,
 )
 from ekagra.ingest.replay import CICIDS2017, FORWARD_OBSERVABLE, load_subsampled  # noqa: E402
+from ekagra.provenance import environment, stamped  # noqa: E402
 
 RESULTS = ROOT / "results"
 RESULTS.mkdir(exist_ok=True)
@@ -285,6 +286,7 @@ def main() -> None:
     print(f"  detector F1, streaming features {e_strm:.4f}   ({e_strm - e_batch:+.4f})")
 
     (RESULTS / "exp05_verdicts.json").write_text(json.dumps({
+        "environment": environment(),
         "stats": stats,
         "batch_wall_s": batch_s,
         "binary_f1": {"G_batch": hw_batch, "G_streaming": hw_strm,

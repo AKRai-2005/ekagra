@@ -81,6 +81,7 @@ from ekagra.ingest.replay import (  # noqa: E402
     BACKWARD_DERIVED, BIDIRECTIONAL_AGGREGATE, CICIDS2017, FORWARD_OBSERVABLE,
     load_subsampled,
 )
+from ekagra.provenance import environment, stamped  # noqa: E402
 
 RESULTS = ROOT / "results"
 RESULTS.mkdir(exist_ok=True)
@@ -240,6 +241,7 @@ def main() -> None:
     ]).to_csv(RESULTS / "exp04_forward_features.csv", index=False)
 
     (RESULTS / "exp04_verdicts.json").write_text(json.dumps({
+        "environment": environment(),
         "window_s": WINDOW_S,
         "n_flows": int(len(df)),
         "binary_f1": {"A_FULL": a_bin, "C_MATCHED": c_bin, "E_SENSOR": e_bin,

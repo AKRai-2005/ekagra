@@ -77,6 +77,7 @@ from ekagra.features.streaming_host_window import StreamingHostWindow
 from ekagra.ingest.flow_assembler import ACTIVE_TIMEOUT_S, IDLE_TIMEOUT_S, FlowAssembler  # noqa: E402
 from ekagra.ingest.synthetic import GeneratorConfig, SyntheticSource  # noqa: E402
 from ekagra.ingest.visibility import DIODE_ONEWAY, VisibilityFilter  # noqa: E402
+from ekagra.provenance import environment, stamped  # noqa: E402
 
 RESULTS = ROOT / "results"
 RESULTS.mkdir(exist_ok=True)
@@ -296,6 +297,7 @@ def main() -> None:
         print(f"  {k}  {'HOLDS ' if ok else 'FAILS '}  {d}")
 
     (RESULTS / "exp09_verdicts.json").write_text(json.dumps({
+        "environment": environment(),
         "cells": len(rows), "test_cells": int(te.sum()),
         "cooccurrence_fraction": frac_multi,
         "cooccurring_pairs": {f"{a}+{b}": n for (a, b), n in pairs.most_common(10)},

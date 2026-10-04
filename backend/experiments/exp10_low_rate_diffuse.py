@@ -111,6 +111,7 @@ from ekagra.ingest.replay import (  # noqa: E402
     BACKWARD_DERIVED, BIDIRECTIONAL_AGGREGATE, FORWARD_OBSERVABLE,
     CICIDS2017, load_subsampled,
 )
+from ekagra.provenance import environment, stamped  # noqa: E402
 
 RESULTS = ROOT / "results"
 RESULTS.mkdir(exist_ok=True)
@@ -427,6 +428,7 @@ def main() -> None:
             "establish the crossover point in a real network",
         ],
     }
+    payload = stamped(payload)
     (RESULTS / "exp10_verdicts.json").write_text(json.dumps(payload, indent=2,
                                                            default=float))
     print("\n  wrote results/exp10_density_sweep.csv and exp10_verdicts.json")

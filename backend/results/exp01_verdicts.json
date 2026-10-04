@@ -1,4 +1,26 @@
 {
+  "environment": {
+    "recorded_at": "2026-10-04T05:54:43Z",
+    "python": "3.12.10",
+    "platform": "Windows 11 (AMD64)",
+    "versions": {
+      "numpy": "2.5.2",
+      "scipy": "1.16.3",
+      "pandas": "3.0.2",
+      "sklearn": "1.7.2",
+      "xgboost": "3.2.0"
+    },
+    "threads": {
+      "cpu_count": 12,
+      "OMP_NUM_THREADS": null,
+      "MKL_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null
+    },
+    "git": {
+      "commit": "0cbddd3",
+      "dirty": true
+    }
+  },
   "macro_f1_full": 0.9262822578962154,
   "predictions_were_registered_before_running": true,
   "verdicts": {

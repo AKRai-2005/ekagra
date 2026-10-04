@@ -79,6 +79,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from ekagra.features.protocol import BigramModel, _char_entropy, _digit_ratio  # noqa: E402
 from ekagra.ingest.pcap import PcapSource  # noqa: E402
+from ekagra.provenance import environment, stamped  # noqa: E402
 
 RESULTS = ROOT / "results"
 TLDS = ("com", "net", "org", "info", "biz", "ru", "cn", "top", "xyz")
@@ -420,6 +421,7 @@ def main() -> int:
         "verdicts": verdicts,
         "note": "No query name from the capture is stored here.",
     }
+    payload = stamped(payload)
     (RESULTS / "exp11_verdicts.json").write_text(json.dumps(payload, indent=1))
     print("\n  wrote results/exp11_verdicts.json")
     print(f"  total {time.time()-t0:.0f}s")

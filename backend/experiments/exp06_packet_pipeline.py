@@ -68,6 +68,7 @@ from ekagra.ingest.flow_assembler import (  # noqa: E402
 from ekagra.ingest.records import THREAT_CLASSES  # noqa: E402
 from ekagra.ingest.synthetic import GeneratorConfig, SyntheticSource  # noqa: E402
 from ekagra.ingest.visibility import DIODE_ONEWAY, VisibilityFilter  # noqa: E402
+from ekagra.provenance import environment, stamped  # noqa: E402
 
 RESULTS = ROOT / "results"
 RESULTS.mkdir(exist_ok=True)
@@ -248,6 +249,7 @@ def main() -> None:
           f"{f1_by_lat[60.0] - f1_oracle:+.4f}")
 
     (RESULTS / "exp06_verdicts.json").write_text(json.dumps({
+        "environment": environment(),
         "packets_generated": len(packets), "packets_observed": len(observed),
         "assembler": {k: st_ref[k] for k in
                       ("flows_emitted", "closed_by_flags", "closed_by_idle",

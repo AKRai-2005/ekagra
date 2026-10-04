@@ -55,6 +55,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from ekagra.ingest.synthetic import GeneratorConfig, SyntheticSource  # noqa: E402
 from ekagra.ingest.visibility import DIODE_ONEWAY, VisibilityFilter  # noqa: E402
 from ekagra.pipeline.sharded import run_sharded, run_single  # noqa: E402
+from ekagra.provenance import environment, stamped  # noqa: E402
 
 RESULTS = ROOT / "results"
 RESULTS.mkdir(exist_ok=True)
@@ -183,6 +184,7 @@ def main() -> None:
     print(f"  -> line rate {'REACHED' if best.packets_per_s >= LINE_RATE_PPS else 'NOT reached'}")
 
     (RESULTS / "exp07_verdicts.json").write_text(json.dumps({
+        "environment": environment(),
         "packets": len(observed),
         "avg_packet_bytes": AVG_PACKET_BYTES,
         "line_rate_pps_1gbps": LINE_RATE_PPS,

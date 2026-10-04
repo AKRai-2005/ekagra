@@ -61,6 +61,7 @@ from ekagra.ingest.flow_assembler import ACTIVE_TIMEOUT_S, IDLE_TIMEOUT_S, FlowA
 from ekagra.ingest.records import THREAT_CLASSES  # noqa: E402
 from ekagra.ingest.synthetic import GeneratorConfig, SyntheticSource  # noqa: E402
 from ekagra.ingest.visibility import DIODE_ONEWAY, VisibilityFilter  # noqa: E402
+from ekagra.provenance import environment, stamped  # noqa: E402
 
 RESULTS = ROOT / "results"
 CONSOLE = ROOT.parent / "frontend"
@@ -288,6 +289,7 @@ def main() -> None:
         print(f"  {k}  {'HOLDS ' if ok else 'FAILS '}  {d}")
 
     (RESULTS / "exp08_verdicts.json").write_text(json.dumps({
+        "environment": environment(),
         "sensor": data["sensor"], "calibration": rep.as_dict(),
         "calibration_marginal": rep_m.as_dict(),
         "binary_f1": float(binf), "chain_head": log.head,

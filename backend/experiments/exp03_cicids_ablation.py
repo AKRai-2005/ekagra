@@ -57,6 +57,7 @@ from ekagra.ingest.replay import (  # noqa: E402
     BACKWARD_DERIVED, BIDIRECTIONAL_AGGREGATE, CICIDS2017, FORWARD_OBSERVABLE,
     column_audit, load_subsampled,
 )
+from ekagra.provenance import environment, stamped  # noqa: E402
 
 RESULTS = ROOT / "results"
 RESULTS.mkdir(exist_ok=True)
@@ -277,6 +278,7 @@ def main(argv=None) -> None:
     print(f"  Residual vs full visibility  : {c_bin - a_bin:+.4f} binary-F1")
 
     (RESULTS / "exp03_verdicts.json").write_text(json.dumps({
+        "environment": environment(),
         "corpus": "CIC-IDS2017 corrected CICFlowMeter (Zenodo 22016274)",
         "n_flows_used": int(len(df)), "benign_keep_rate": args.benign_keep,
         "n_full_features": len(full_cols), "n_forward_features": len(fwd_cols),
